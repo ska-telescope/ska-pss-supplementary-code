@@ -1,0 +1,31 @@
+# tengu makefile
+CC=/usr/local/cuda-11.2/bin/nvcc
+CFLAGS=-I/usr/local/cuda-11.2/include/ -I/usr/local/cuda-11.2/samples/common/inc/ -L/usr/local/cuda-11.2/lib64 -L/usr/local/pgplot/ -lcufft
+DEPS = filterbank_cuda.hpp
+CPP = g++ -g -Wall
+ALL_CFLAGS = -ccbin g++ -I/usr/local/cuda-11.2/include/ -I/usr/local/cuda-11.2/samples/common/inc/  -m64 \
+        -gencode arch=compute_75,code=\"sm_75,compute_75\" -lcufft -std=c++11
+LD_FLAGS = -lm -lpthread -lcpgplot -lcufft -std=c++11 -fPIC -march=native -ffast-math -funroll-loops
+OBJ = cufft_loop.o
+ASM = nasm -f elf64
+
+FILES = \
+
+%.o: %.c
+	$(CC) $(ALL_CFLAGS) -o $@ -c $<
+
+%.o: %.cu
+	$(CC) $(ALL_CFLAGS) -o $@ -c $<
+
+%.o: %.cpp
+	$(CPP) $(CFLAGS) -o $@ -c $< $(LD_FLAGS)
+
+%.o: %.asm
+	$(ASM) $(AFLAGS) -o $@ $<
+
+cufft_loop: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS)
+	rm -f -r ./*.o
+
+clean:
+	rm -f -r ./*.o
