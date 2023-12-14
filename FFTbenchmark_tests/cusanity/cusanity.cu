@@ -1,10 +1,5 @@
 //  make
 // example call: ./cusanity > inout.csv &
-// uses in-place data calc
-//
-// uses sine signal+ND-noise in real part of the complex input vector, just ND-noise for imaginary part
-// writes out input sine wave, input array (real+ima) and then output array (real, ima) of each run 
-// for double checking with other FFT routines and recovering test of input sine signal
 
 
 #include <stdlib.h>
@@ -30,10 +25,19 @@ int Narray[]={1024*1024*2};
 
 #define tscan 10.0*60.0 
 
+// Test if CUDA FFT is doing what we think it is doing 
+// FFTs of (same) size N are carried out numrun times using CUDA FFT algorithm
+// Here, the interesting output is the actual FFT calculation (to be compared with independent calculation)
+// ND = normal distribution
+// input: sine signal+ND-noise in real part of the complex input vector, just ND-noise for imaginary part
+// writes out input sine wave, input array (real+ima) and then output array (real, ima) of each run 
+// for double checking with other FFT routines and recovering test of input sine signal
+
 int main()
 {
     std::random_device rd;
     std::mt19937 rng(rd());
+ // these signal parameters can be changed    
     std::normal_distribution<float> generate_data(128,10 );
     std::normal_distribution<float> generate_amplitude(30,5 );
     std::normal_distribution<float> generate_frequency(1000,10 );
@@ -77,9 +81,8 @@ int main()
             {
                 double t = static_cast<double>(i)* tscan / static_cast<double>(Nlauf);
                 double pulse_i=amp * std::sin(2.0 * M_PI * freq * t); 
-    //            input_data[i][0] = pulse_i + generate_data(rng);
-    //            input_data[i][1] = generate_data(rng);
                 input_data[i] = data_type(pulse_i+generate_data(rng), generate_data(rng));
+// print what was the input data
                 std::cout<<"cuFFTWin,"<<amp<<","<<freq<<","<<k<<","<<i<<","<<t<<","<<input_data[i].real()<<","<<input_data[i].imag()<<"\n";
             }
 
@@ -105,15 +108,12 @@ int main()
  
             auto fft_stop = std::chrono::high_resolution_clock::now();
 //--------- end stop watch
-//        std::cout<<"Time elapsed: "<<std::chrono::duration_cast<std::chrono::nanoseconds>(fft_stop - fft_start).count()<<",ns\n";
 
-//        std::printf("Output array:\n");
+// print output array       
             for (int i = 0; i < Nlauf; i++) {
                 std::cout<<"cuFFTWout,0,0,"<<k<<","<<i<<","<<i<<","<<input_data[i].real()<<","<<input_data[i].imag()<<"\n";
 
             }
-//        std::printf("=====\n");
-//            std::cout<<"cufft,SINpND,"<<Nlauf<<",FORWARD,"<<k<<","<<std::chrono::duration_cast<std::chrono::nanoseconds>(fft_stop - fft_start).count()<<",ns\n";
         }
 
 

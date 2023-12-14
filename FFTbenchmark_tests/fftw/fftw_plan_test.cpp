@@ -1,9 +1,6 @@
 // to compile:  g++ -g -Wall -o fftw_plan_test fftw_plan_test.cpp -lfftw3 -lm
 // to run: ./fftw_plan_test > out.csv &
 
-// get the fftw "overhead" time for the ESITMAE/MEASURE plans
-// only forward direction is considered (after similar performance times were found for different directions)
-
 #define N 1024*1024*2
 
 #include <stdlib.h>
@@ -14,6 +11,10 @@
 #include <random>
 
 auto numruns=10000;
+
+// fftw uses a "plan" to calculate FFTs most efficiently, the same plan is used for many FFTs
+// Here, we get the fftw "overhead" time for initialisation of the (1.) ESITMATE, and (2.) MEASURE plan
+// only forward direction is considered (after similar performance times were found for different directions)
 
 int main()
 {
