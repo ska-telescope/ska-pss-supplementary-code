@@ -1,0 +1,30 @@
+CC=/usr/local/cuda-12.2/bin/nvcc
+CFLAGS=-I/usr/local/cuda-12.2/include/ -I/usr/local/cuda-12.2/samples/common/inc/ -L/usr/local/cuda-12.2/lib64 -L/usr/local/pgplot/ -lcufft
+DEPS = filterbank_cuda.hpp
+CPP = g++ -g -Wall
+ALL_CFLAGS = -ccbin g++ -I/usr/local/cuda-12.2/include/ -I/usr/local/cuda-12.2/samples/common/inc/  -m64 \
+	-gencode arch=compute_90,code=\"sm_90,compute_90\" -lcufft -std=c++11
+LD_FLAGS = -lm -lpthread -lcpgplot -lcufft -std=c++11 -fPIC -march=native -ffast-math -funroll-loops
+OBJ = cusanity.o
+ASM = nasm -f elf64
+
+FILES = \
+
+%.o: %.c
+	$(CC) $(ALL_CFLAGS) -o $@ -c $<
+
+%.o: %.cu
+	$(CC) $(ALL_CFLAGS) -o $@ -c $<
+
+%.o: %.cpp
+	$(CPP) $(CFLAGS) -o $@ -c $< $(LD_FLAGS)
+
+%.o: %.asm
+	$(ASM) $(AFLAGS) -o $@ $<
+
+cusanity: $(OBJ)
+	$(CC) -o $@ $^ $(CFLAGS)
+	rm -f -r ./*.o
+
+clean:
+	rm -f -r ./*.o
