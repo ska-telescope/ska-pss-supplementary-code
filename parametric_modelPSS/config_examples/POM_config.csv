@@ -1,0 +1,45 @@
+# header:
+parameter,value
+# Note:
+#  if boolean value: 1 = YES/True; 0 = NO/FALSE
+#
+######## Ignore running modules according to cheetah config file ?
+# (not all modules yet exist, but we may already want to simulate them)
+ignore_cheetah_config_modules,0  
+#       0 = only use cheetah config; 
+#       1 = ignore cheetah config; 
+#       2 = POM 'run_...' parameters take precedence IF existent (i.e. no comment before run_...)
+#
+######## Which cheetah modules should be simulated in the POM
+run_rcpt,1  # boolean
+run_ddbc,0  # boolean
+run_rfim,0  # boolean
+run_ddtr,0  # boolean
+run_spdt,0  # boolean
+run_spsift,0  # boolean
+run_ffbc,1  # boolean
+run_psbc,0  # boolean
+run_cxft,0  # boolean
+run_brdz,0  # boolean
+run_dred,0  # boolean
+run_fdas,0  # boolean
+run_sift,0  # boolean
+run_fldo,0  # boolean
+run_cdos,1  # boolean
+######## simulation setup 
+number_of_runs,1 # positive integer
+sim_duration,500 # in time units; positive integer
+######## observation / data chunk setup
+obs_length, 48   # observation length in time unit
+chunk_length, 12 # data chunk size in time unit
+######## processing times in time units
+#   time of RCP module to process one data chunk 
+#  *** MUST be Zero !* in steady-state ***  
+t_RCP_i,0
+#   time to put one data chunk into output buffer    
+t_FFBC_i,3   
+#   time to write out [modified] observation data    
+t_CDOS_all,10  # time for period search output (whole observation)  
+t_CDOS_sps,3   # time for sps output (one chunk of observation)  
+######## resources    
+available_cpu_ram, 1 # needs to be integer
