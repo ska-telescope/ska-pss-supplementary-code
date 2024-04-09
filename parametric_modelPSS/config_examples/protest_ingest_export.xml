@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<cheetah>
+  <beams>
+    <beam>
+      <active>true</active>
+      <cpu>
+        <affinity>0</affinity>
+      </cpu>
+      <sinks>
+        <threads>0</threads>
+        <channels>
+          <raw>
+            <active>true</active>
+            <sink>
+              <id>sigproc_file</id>
+            </sink>
+            <id>channel_raw</id>
+          </raw>
+        </channels>
+        <sink_configs>
+          <sigproc>
+            <spectra_per_file>937500</spectra_per_file>
+            <dir>/tmp</dir>
+            <extension>.fil</extension>
+            <id>sigproc_file</id>
+          </sigproc>
+        </sink_configs>
+      </sinks>
+      <source>
+        <sigproc>
+            <file></file>
+            <chunk_samples>4096</chunk_samples>
+        </sigproc>
+      </source>
+      <id>first_beam</id>
+    </beam>
+  </beams>
+</cheetah>
