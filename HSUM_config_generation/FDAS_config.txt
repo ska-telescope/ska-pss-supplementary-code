@@ -1,0 +1,22 @@
+Address      Value           Comment    
+00800080 000001CC    = 460 dec                              CTRL OVRERLAP_SIZE[9:0] for multiplicative filters
+008000C0 003FFE6F    = 4,193,903 dec                   CTRL FOP_SAMPLE_NUM[22:0] for multiplicative filters
+008000D0 00000003    = 3 dec                                 CTRL IFFT_LOOP_NUM[5:0]
+00800140 00000000    = 0 dec                                 CTRL MANUAL_TRIGGER
+00800180 00000000    = 0 dec                                 CTRL MANUAL_ENABLE
+01140000 000000E6    = 230 dec                            CONV ROW0_DELAY[9:0] for multiplicative filters
+01868000 000000C8    = 200 dec (0.37Hz)            HSUM B_START_1[21:0]
+01868008 00041AC8    = 269,000 dec (501Hz)     HSUM B_STOP_1[21:0]
+01868010 00000000    = 0                                        HSUM B_START_2[21:0] 
+01868018 00000000    = 0                                       HSUM B_STOP_2[21:0]
+01868020 00000007    = 7 dec                                HSUM H_1[3:0]/H_2[3:0] (config value of 7 = 8 harmonics analysed)
+01868028 00000055    = 85 dec                             HSUM FOP_ROW_1[3:0]/FOP_ROW_2[3:0] (config value of 85 = 85 FOP Rows)
+01868030 000000E6    = 230 dec                           HSUM FOP_COL_OFFSET[8] for multiplicative filters
+01868040 00000000    = 0 dec                              HSUM A_SET (config value of 0 = 1 analysis run)
+01868048 00061A80    = 400,000 dec                  HSUM THRESH_SET[21:0]
+01868050 00000000    = 0 dec                              HSUM M[31:0]
+01868060 00000000    = 0 dec                              HSUM T_FILTER_EN
+01868080 00000014    = 20 dec                           HSUM SUMMER 1 P_EN_1[4:0]/P_EN_2[4:0] (Summer Tree 1, config value of 20 = 21 SeedF0s per fundamental FOP Col run 1)
+01868088 00000004    = 4 dec                             HSUM SUMMER 1 A_1[3:0]/A_2[3:0] (Summer Tree 1, config value of 4 = 5 acceleration ambiguity slopes run 1)
+01868090 00000014    = 20 dec                           HSUM SUMMER 2 P_EN_1[4:0]/P_EN_2[4:0] (Summer Tree 2, config value of 20 = 21 SeedF0s per fundamental FOP Col run 1)
+01868098 00000004    = 4 dec                             HSUM SUMMER 2 A_1[3:0]/A_2[3:0] (Summer Tree 2, config value of 4 = 5 acceleration ambiguity slopes run 1)
