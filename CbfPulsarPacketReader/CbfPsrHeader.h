@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2022 The SKA organisation
+ * Copyright (c) 2024 The SKA organisation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -95,7 +95,7 @@ struct CbfPsrHeader
 
         /**
          * @brief A 16-bit unsigned integer channels per packet field
-         * will identify the range of contiguous frequency channels
+         * will identify the range of valid contiguous frequency channels
          * contained in the packet.
          */
         uint16_t channels_per_packet() const;

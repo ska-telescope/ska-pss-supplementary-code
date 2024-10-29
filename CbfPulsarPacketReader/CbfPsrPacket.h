@@ -1,7 +1,7 @@
 /*
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 The SKA organisation
+ * Copyright (c) 2024 The SKA organisation
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
  * SOFTWARE.
  */
-#ifndef SKA_CBFPSRINTERFACE_CBFPSRPACKET_H
-#define SKA_CBFPSRINTERFACE_CBFPSRPACKET_H
+#ifndef SKA_CBF_PSR_INTERFACE_CBFPSRPACKET_H
+#define SKA_CBF_PSR_INTERFACE_CBFPSRPACKET_H
 
 #include "CbfPsrHeader.h"
 #include <cstdlib>
@@ -37,7 +37,7 @@ namespace cbf_psr_interface {
  *   Interface to packing/unpacking packets from the BeamFormer receptor stream UDP packet
  * @tparam PacketDataType datatype of the time-frequency elements
  * @tparam TimeSamplesPerPacket Number of contiguous time samples in the packet
- * @tparam ChannelsPerPacket Number of contiguous channels in the pacter
+ * @tparam ChannelsPerPacket Number of contiguous frequency channels in the pacter
  * @details Caution! The template paramers must match the corresponding header values
  *          This is NOT checked internally in this class.
  */
@@ -68,12 +68,12 @@ class CbfPsrPacket
         constexpr static std::size_t header_size();
 
         /**
-         * @brief the total size in bytes of the channel rcpt
+         * @brief the total payload size in byte
          */
         constexpr static std::size_t payload_size();
 
         /**
-         * @brief the total size in bytes of the channel rcpt
+         * @brief the data size size in bytes
          */
         constexpr static std::size_t data_size();
 
@@ -83,7 +83,7 @@ class CbfPsrPacket
         static std::size_t  number_of_samples();
 
         /**
-         * @brief number of elements per polarization
+         * @brief number of data elements per polarization
          */
         constexpr static std::size_t elements_per_pol();
 
@@ -142,7 +142,7 @@ class CbfPsrPacket
         void first_channel_frequency(double value);
 
         /**
-         * @brief channel_separation
+         * @brief channel_separation in mHz
          */
         ChannelSeperationType channel_separation() const;
         void channel_separation(ChannelSeperationType number);
@@ -210,10 +210,10 @@ class CbfPsrPacket
         void set_unit_weights();
 
     private: // static variables
-        static constexpr std::size_t _packet_data_size = ChannelsPerPacket*TimeSamplesPerPacket*sizeof(uint8_t)*4;
+        static constexpr std::size_t _packet_data_size = ChannelsPerPacket*TimeSamplesPerPacket*sizeof(uint8_t)*4; //4 pols , 8bit data
         static constexpr std::size_t _packet_weights_size = ChannelsPerPacket*sizeof(WeightsType);
-        static constexpr std::size_t _packet_data_padding_size = (16-(_packet_data_size%16))%16;
-        static constexpr std::size_t _packet_weights_padding_size = (16-(_packet_weights_size%16))%16;
+        static constexpr std::size_t _packet_data_padding_size = (16-(_packet_data_size%16))%16; //padding the data so it is aligned to the 128 bit lines.
+        static constexpr std::size_t _packet_weights_padding_size = (16-(_packet_weights_size%16))%16; //padding the data so it is aligned to the 128 bit lines.
         static const std::size_t _number_of_elements = TimeSamplesPerPacket*ChannelsPerPacket*4;
         static const std::size_t _size = _packet_data_padding_size + _packet_weights_padding_size + _packet_data_size + _packet_weights_size + sizeof(PacketHeader);
         static const std::size_t _number_of_samples = TimeSamplesPerPacket;
@@ -230,4 +230,4 @@ class CbfPsrPacket
 } // namespace ska
 #include "CbfPsrPacket.cpp"
 
-#endif // SKA_CBFPSRINTERFACE_CBFPSRPACKET_H
+#endif // SKA_CBF_PSR_INTERFACE_CBFPSRPACKET_H
