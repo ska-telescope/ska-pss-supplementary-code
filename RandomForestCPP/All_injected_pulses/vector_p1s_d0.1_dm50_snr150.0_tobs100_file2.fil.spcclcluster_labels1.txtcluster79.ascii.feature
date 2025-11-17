@@ -1,2 +1,0 @@
-Max_snr,Cluster_size,Max_width,Time_width,DM_width,DM_snr_symmetry,Time_DM_slope,Time_DM_scatter, Best DM 
-120.36,23604.0,1.024,555.267578125,911.1,0.07965299684542587,-1.7151875178750342,2.3573998512695615,50.0,12.58085808580858
