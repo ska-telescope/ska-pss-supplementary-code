@@ -50,7 +50,7 @@ for name in df_f["name"].unique():
     fig, ax1 = plt.subplots(figsize=(6, 4))
     
     if sizesubset > 1:
-        binsize=int(sizesubset/3)
+        binsize= max(1, int( sizesubset / 3))
         print('Chosen bin size: ',binsize,' for name: ',name)
         
 
