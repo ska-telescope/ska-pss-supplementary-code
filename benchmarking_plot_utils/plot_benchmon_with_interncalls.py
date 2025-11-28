@@ -89,9 +89,11 @@ if do_power_plot == 1:
         print('      (full benchmon-traces directory setup expected) ')
         # set variable to no-power-plot 
         do_power_plot = 0
-        
 
-    
+# needed so that we can pass something to the plotting function        
+if do_power_plot == 0:
+    pow_time = []
+    pow_level = []
 
 # get covered time range with benchmon
 bm_df.sort_values('timestamp',inplace=True) #in case not sorted
@@ -134,10 +136,49 @@ if ((begin_plot_time == -999) and (end_plot_time == -999)):
 
 
 def plot_all(bm_df,
-             df_f,num_modules,
+             df_f,
+             num_modules,
              fileout,
              begin_plot_time,end_plot_time,
-             do_power_plot):
+             start_pipe, end_pipe,
+             zero_time,
+             do_power_plot,
+             pow_time,
+             pow_level):
+    """
+    plots two or three panels with shared time axis: 
+        Cheetah module ON-times, benchmon resources (memory and power)
+
+    Parameters
+    ----------
+    bm_df : pandas dataframe created from benchmon memory_report.csv
+            need columns: MemTotal, MemFree, plot_time
+    df_f : pandas dataframe created from Cheetah logfile
+           must have columns: name,ic_time1,ic_time2
+    num_modules : number of unique Cheetah modules to plot
+    fileout: string
+        name of pdf output plot
+    begin_plot_time : double (float64)
+        minimum time in plot
+    end_plot_time : double
+        maximum time in plot        
+    start_pipe : double
+        time of Cheetah pipeline start
+    end_pipe : double
+        time of Cheethah pipeline end 
+    zero_time : double
+        time use for normalisation (shift) in plot
+    do_power_plot : 0 = no power plot
+                    1 = do power plot panel
+    pow_time : time array of benchmon power resource (extracted from pow-report.csv)
+    pow_level : power level of benchmon power resource (extracted from pow-report.csv)
+
+    Returns
+    -------
+    multiple panel plot in file: fileout.pdf 
+
+    """
+
 
     #--- for benchmon: do RAM ratio plot
     max_ram =bm_df.MemTotal.iloc[0]
@@ -308,9 +349,12 @@ plot_all(bm_df,
          df_use,
          num_modules,
          fileout,
-         begin_plot_time,
-         end_plot_time,
-         do_power_plot)
+         begin_plot_time,end_plot_time,
+         start_pipe, end_pipe,
+         zero_time,
+         do_power_plot,
+         pow_time,
+         pow_level)
 
 
 
