@@ -44,7 +44,6 @@ Note 2 : multiple beams can currently not be differentiate in the log level
 @author: bposselt
 """
 import pandas as pd
-import numpy as np
 import re
 import warnings
 
@@ -432,19 +431,6 @@ def extract_to_numeric(df, source_col, regex, out_col, dtype=float):
    
     return df
 
-
-def extract_named_groups(df, source_col, regex):
-    """
-    Extract named groups from regex into separate columns.
-    Use a regex with named capture groups.
-    Returns a new DataFrame (copy) with new columns added.
-    """
-    df = df.copy()
-    extracted = df[source_col].str.extract(regex)
-    # convert any digit-like columns to numeric where possible
-    for c in extracted.columns:
-        extracted[c] = pd.to_numeric(extracted[c], errors="coerce")
-    return pd.concat([df.reset_index(drop=True), extracted.reset_index(drop=True)], axis=1)
 
 def compute_calc_start(df, time_col="time_in_s", dur_ns_col="dur_ns", out_col="calc_start"):
     """
