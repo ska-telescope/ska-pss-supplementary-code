@@ -82,7 +82,7 @@ if do_power_plot == 1:
         time0=power_perf_metrics.time_stamps[0]
         pow_time = power_perf_metrics.time_stamps[1:] -time0
         pow_level = pow_total[event]
-        
+        assert len(pow_time) == len(pow_level), "pow_time and pow_level have different array lengths!"
         
     except Exception:   
         print(' ==== Problems with extracting power via benchmon tools! ')
@@ -95,8 +95,8 @@ if do_power_plot == 1:
 
 # get covered time range with benchmon
 bm_df.sort_values('timestamp',inplace=True) #in case not sorted
-start_time=bm_df.loc[0,'timestamp']
-end_time=bm_df.iloc[-1]['timestamp']
+
+
 
 #  get start and end of pipeline run 
 start_pipe=ic_df[(ic_df['name'] == 'cheetah_start')].calc_start[0]
@@ -119,6 +119,7 @@ df_f = ic_df[~ic_df["name"].isin(drop_names)].copy()
 
 
 num_modules = len(df_f["name"].unique())
+assert num_modules > 0, "no unique module names in the data"
 print(num_modules,' module calls listed ')
 
 # --- this could be later modified to allow selection for which ones to plot 
