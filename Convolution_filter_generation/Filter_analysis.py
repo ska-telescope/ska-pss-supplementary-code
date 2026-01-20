@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from modules.template_generator import Template
 
+print(" This script is meant to generate plots used for the filter analysis documentation.")
+
 #####   Convolution result for integer bin filter   ######
 plt.xlabel('Trial drift (bins)')
 plt.ylabel('Recovered power')

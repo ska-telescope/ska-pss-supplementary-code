@@ -6,13 +6,15 @@ import struct
 ### A class filters to hold both multiplicative and uniformly sampling of filter width
 class filters:
     ### Constructor
-    def __init__(self):
+    def __init__(self, num_filters, seperation):
         ### Multiplicative filters
+        nfil = int(num_filters,)
+        fil_sep = int(seperation)
         self.multiplicative=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 17, 19, 21, 23, 25, 28, 31, 34, 38, 42, 46, 51, 56, 62, 69, 76, 84, 93, 103, 114, 126, 139, 154, 170, 188, 208, 230, 254]
         filters2=[1]           # Filter 2 is uniformly sampled filters
         ### Uniform filters
-        for i in range(1,43):
-            filters2.append((i*5))
+        for i in range(1,nfil):
+            filters2.append((i*fil_sep))
         self.uniform=filters2
 
 ###  Function to compute filter templates

@@ -1,21 +1,56 @@
 import matplotlib.pyplot as plt
 import numpy as np
+import argparse
 from modules.template_generator import Template
 from modules.template_generator import filter_padding_and_fft
 from modules.template_generator import final_filter_write
 from modules.template_generator import filters
 
+### Parsign arguments  #######
+
+parser = argparse.ArgumentParser(description ='Generates convolution filters for acceleration search (developed for PSS-Cheetah).')
+
+parser.add_argument('-num_filters',
+                    type = int,
+                    default=43,
+                    required = False,
+                    help ='Number of filters to generate (default: 43 for chettah-fpga-fdas)')
+
+parser.add_argument('-fil_sep',
+                    type = int,
+                    default=4,
+                    required = False,
+                    help ='Seperation between two consecutive filters (default: 4 for Cheetah-fpga-fdas)')
+
+parser.add_argument('-fft_len',
+                    type = int,
+                    default=1024,
+                    required = False,
+                    help ='FFT length used for padding and fft (default: 1024)')
+
+
+parser.add_argument('-outfile',
+                    type = str,
+                    default= 'fitlers_little_endian.dat',
+                    required = False,
+                    help ='Name of the output file (default: fitlers_little_endian.dat)')
+
+args = parser.parse_args()
+
+print("Generating filters with width spacing: "+str(args.fil_sep)+'\n')
+
 ### Number of drifts to generate generate filters for  ###  
-widths=filters().uniform[1:]                           ### Widths of filters excluding the 1 bin drift filter.
+widths=filters(args.num_filters, args.fil_sep).uniform[1:]                           ### Widths of filters excluding the 1 bin drift filter.
 ###  One can select multiplicative filters and any other filter choice after adding it to filters class of template_generator.py
 print('Filters will be created for the following widths: \n')
 print(widths)
+max_drift = max(widths)
+fft_len=args.fft_len              ### FFT length used by convlution process
+max_fil_len=2*(max_drift)+1           ### Maximum size of filters
 
-fft_len=1024              ### FFT length used by convlution process
-max_fil_len=421           ### Maximum size of filters
-
+print("Maximum length of the fitler is: "+str(max_fil_len)+"\n")
 ### Open binary files to write out the FFT of padded filter templates ###
-fl=open('fitlers_little_endian.dat','wb')
+fl=open(args.outfile,'wb')
 fb=open('fitlers_big_endian.dat','wb')
 
 ###  Generate filter for each value of drifts  ###
