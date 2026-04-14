@@ -5,23 +5,20 @@ import matplotlib.pyplot as plt
 import numpy as np
 from modules.template_generator import Template
 
-print(
-    " This script is meant to generate plots used for the filter analysis documentation."
-)
 
 #####   Convolution result for integer bin filter   ######
+plt.figure()
 plt.xlabel("Trial drift (bins)")
 plt.ylabel("Recovered power")
 bins0_list = [50]
 for bins0 in bins0_list:
     detections = []
     detections_inc = []
-    bins0 = bins0
     trial_range = np.arange(bins0 - 20, bins0 + 21, 0.1)
 
     filter0 = Template(bins0).template
-    for bin in trial_range:
-        filter = Template(bin).template
+    for trial_drift in trial_range:
+        filter = Template(trial_drift).template
         power = np.max(np.abs(np.convolve(filter, np.conjugate(filter0), "full")))
         detections.append(power)
         power_inc = np.max(np.abs(np.convolve(np.abs(filter), np.abs(filter0), "full")))
@@ -40,6 +37,7 @@ plt.show()
 #####   Filter phase comparison  ######
 
 trial_drifts = [30.5, 60.5]
+plt.figure()
 plt.xlabel("Filter Taps (frequency bins)")
 plt.ylabel("Phase (degrees)")
 for drift in trial_drifts:
@@ -51,6 +49,7 @@ plt.show()
 #####   Filter amplitude comparison  ######
 
 trial_drifts = [30.5, 60.5]
+plt.figure()
 plt.xlabel("Filter Taps (frequency bins)")
 plt.ylabel("Amplitude")
 for drift in trial_drifts:
@@ -61,19 +60,18 @@ plt.show()
 
 ####  Loss in 5 bin seperation of filter widths #####
 
-
+plt.figure()
 plt.xlabel("Trial drift (bins)")
 plt.ylabel("Recovered power")
 bins0_list = [1, 2, 3, 4, 5]
 for bins0 in bins0_list:
     detections = []
     detections_inc = []
-    bins0 = bins0
     trial_range = np.arange(bins0 - (bins0 - 1), bins0 + 10)
 
     filter0 = Template(bins0).template
-    for bin in trial_range:
-        filter = Template(bin).template
+    for trial_drift in trial_range:
+        filter = Template(trial_drift).template
         power = np.max(np.abs(np.convolve(filter, np.conjugate(filter0), "full")))
         detections.append(power)
         power_inc = np.max(np.abs(np.convolve(np.abs(filter), np.abs(filter0), "full")))
@@ -97,6 +95,7 @@ phase2 = np.angle(filter2) * 180.0 / np.pi
 phase3 = np.angle(filter3) * 180.0 / np.pi
 phase12 = phase2[:301] - phase1
 phase13 = phase1[:300] - phase3
+plt.figure()
 plt.xlabel("Filter taps")
 plt.ylabel("Phase (degrees)")
 plt.plot(phase12, label="Phase difference between filters of drift 150 and 150.5 bins")

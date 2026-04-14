@@ -1,4 +1,3 @@
-import matplotlib.pyplot as plt
 import numpy as np
 import argparse
 from modules.template_generator import Template
@@ -42,7 +41,7 @@ parser.add_argument(
     type=str,
     default="fitlers_little_endian.dat",
     required=False,
-    help="Name of the output file (default: fitlers_little_endian.dat)",
+    help="Name of the output file (default: filters_little_endian.dat)",
 )
 
 args = parser.parse_args()
@@ -60,29 +59,27 @@ max_drift = max(widths)
 fft_len = args.fft_len  ### FFT length used by convlution process
 max_fil_len = 2 * (max_drift) + 1  ### Maximum size of filters
 
+if(fft_len < max_fil_len):
+    raise ValueError("The largest filtersize is not compatible with the fft length.")
+
 print("Maximum length of the fitler is: " + str(max_fil_len) + "\n")
 ### Open binary files to write out the FFT of padded filter templates ###
-fl = open(args.outfile, "wb")
-fb = open("fitlers_big_endian.dat", "wb")
 
 ###  Generate filter for each value of drifts  ###
-for drift in widths:
-    filter = Template(drift).template  ### Generate template for the drift
-    fil_len = len(filter)
-    filter1 = filter_padding_and_fft(
-        filter, fil_len, max_fil_len, fft_len
-    )  ### Genrating object to be used for padding and FFT
-    filter1.padding()  ###  Padding with (0+i0) symmetrically
-    filter1.fft()  ### Taking FFT of the padded fitler template
-    fwritel = final_filter_write(
-        filter1.filter, fl
-    )  ### Object to write the in little endian format
-    fwritel.write_little_endian()  ### Writting in little endian format
-    fwriteb = final_filter_write(
-        filter1.filter, fb
-    )  ### Object to write in big endian format
-    fwriteb.write_big_endian()  ### Writting in big endian format
-
-###   Closing the binary files
-fl.close()
-fb.close()
+with open(args.outfile, "wb") as fl, open("filters_big_endian.dat", "wb") as fb:
+    for drift in widths:
+        filter = Template(drift).template  ### Generate template for the drift
+        fil_len = len(filter)
+        filter1 = filter_padding_and_fft(
+            filter, fil_len, max_fil_len, fft_len
+        )  ### Genrating object to be used for padding and FFT
+        filter1.padding()  ###  Padding with (0+i0) symmetrically
+        filter1.fft()  ### Taking FFT of the padded fitler template
+        fwritel = final_filter_write(
+            filter1.filter, fl
+        )  ### Object to write the in little endian format
+        fwritel.write_little_endian()  ### Writting in little endian format
+        fwriteb = final_filter_write(
+            filter1.filter, fb
+        )  ### Object to write in big endian format
+        fwriteb.write_big_endian()  ### Writting in big endian format
