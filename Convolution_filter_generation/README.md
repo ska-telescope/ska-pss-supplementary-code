@@ -2,7 +2,7 @@
 
 Python scripts to generate, plot, and test the convolution filters for PSS-FDAS.
 
-##Generating filterset for PSS-FDAS
+## Generating filterset for PSS-FDAS
 
 The script `Generate_filters.py` can generate filters (43 filters in a single binary file) for FPGA-FDAS. The default values of the input parameters are set to the PSS-FDAS requirements.
 

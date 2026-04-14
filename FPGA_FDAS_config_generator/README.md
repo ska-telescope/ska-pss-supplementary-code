@@ -1,26 +1,24 @@
 # FPGA-FDAS Configuration file generator
 
-Python scripts to generate global configuration file for FPGA-FDAS. Global config has four parts to it: CLTR, CONV, HSUM, and thresholds. The HSUM config has two parts, one to configure the module and one to install the summation scheme.
+Python scripts to generate a global configuration file for FPGA-FDAS. Global config has four parts to it: CLTR, CONV, HSUM, and thresholds. The HSUM config has two parts, one to configure the module and one to install the summation scheme.
 
-Generating HSUM summation scheme configuration
-==============================================
+## Generating HSUM summation scheme configuration
 
-The script `HSUM_config_and_diagnostic_sheets.py` can generate the harmonic summing scheme for the HSUM module. The current setup uses 4 bin seperation between conv filters. it uses a total of 12 groups of 11 slopes each.
+The script `HSUM_config_and_diagnostic_sheets.py` can generate the harmonic summing scheme for the HSUM module. The current setup uses 4 bin separation between conv filters. It uses a total of 12 groups of 11 slopes each.
 
-usage: `python HSUM_config_and_diagnostic_sheets.py`
+**usage:** `python HSUM_config_and_diagnostic_sheets.py`
 
 This will generate a number of spreadsheets with all the information on the HSUM scheme. It will also generate `HSUM_config_address_value_list.txt`, that has addresses and values for HSUM configuration.
 
 
-Modifying other Configurable parameters of the global config
-============================================================
-We have three YAML files each for CLTR (`control_params.yaml`), CONV (`conv_params.yaml`), and HSUM module (`hsum_params.yaml') parameters. The final script reads the YAML files for some of the aarguments and it calculates some within the script. Most of the variable parameters are being calculated in the script but if someone want to change a specific parameter they can change it in the YAML files.
+## Modifying other Configurable parameters of the global config
+
+We have three YAML files each for CLTR (`control_params.yaml`), CONV (`conv_params.yaml`), and HSUM module (`hsum_params.yaml`) parameters. The final script reads the YAML files for some of the arguments and it calculates some within the script. Most of the variable parameters are being calculated in the script but if someone want to change a specific parameter they can change it in the YAML files.
 
 
-Generating the final global FPGA-FDAS configuration file
-========================================================
+## Generating the final global FPGA-FDAS configuration file
 
-The script `FDAS_config_from_yaml.py` can combine the contents of different YAML files, HSUM scheme, and calculate the thresholds for a given sigma value (Gaussian equivalent) to generate the final global config. The intended HSUM scheme and the thresholds should be set as the positional arguments of this script. The other observational parameters can be given in the optional arhuments as well.
+The script `FDAS_config_from_yaml.py` can combine the contents of different YAML files, HSUM scheme, and calculate the thresholds for a given sigma value (Gaussian equivalent) to generate the final global config. The intended HSUM scheme and the thresholds should be set as the positional arguments of this script. The other observational parameters can be given in the optional arguments as well.
 
 uses: `FDAS_config_from_yaml.py [-h] [--obs_duration OBS_DURATION] [--largest_filter LARGEST_FILTER] [--fft_seg_len FFT_SEG_LEN] [--max_harm_freq MAX_HARM_FREQ] [--num_seeds NUM_SEEDS] hsum_config sigma`
 

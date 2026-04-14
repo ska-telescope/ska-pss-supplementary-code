@@ -2,6 +2,8 @@ import argparse
 import struct
 import yaml
 import sys
+import math
+from pathlib import Path
 from scipy.stats import chi2, norm
 
 def int_to_hex(i):
@@ -11,7 +13,7 @@ def float_to_hex(f):
     return hex(struct.unpack('<I', struct.pack('<f', f))[0])[2:].zfill(8).upper()
 
 def pack_dual_16(val1, val2):
-    """Packs two integers into a single 32-bit hex string."""
+    """Packs two 8 bit integers integers into first 16 bit of a single 32-bit hex string."""
     packed_val = (val1 << 8) | val2 # Use << 16 if the gap is larger
     return f"{packed_val:08X}"
 
@@ -41,7 +43,7 @@ def get_fop_num_samps(args):
     new_bins = args.fft_seg_len - get_ctrl_overlap(args)
     freq_res = 1 / args.obs_duration 
     nbins_needed = args.max_harm_freq / freq_res
-    int_segs = int(nbins_needed / new_bins)
+    int_segs = math.ceil(nbins_needed / new_bins)
     return new_bins * int_segs
 
 def load_yaml(path):
@@ -110,15 +112,23 @@ if __name__ == "__main__":
     parser.add_argument("--fft_seg_len", type=int, default=1024)
     parser.add_argument("--max_harm_freq", type=int, default=4200)
     parser.add_argument("--num_seeds", type=int, default=12)
+    parser.add_argument("-o", "--outdir", type=str, default="./", help="Output directory")
 
     args = parser.parse_args()
+    out_path = Path(args.outdir).resolve()
+    try:
+        out_path.mkdir(parents=True, exist_ok=True)
+    except OSError as e:
+        print(f"Error: Could not create directory {out_path}: {e}")
+        sys.exit(1)
 
     # Load Register Maps
-    ctrl_map = load_yaml('control_params.yaml')
-    conv_map = load_yaml('conv_params.yaml')
-    hsum_map = load_yaml('hsum_params.yaml')
+    base_dir = Path(__file__).resolve().parent
+    ctrl_map = load_yaml(base_dir/'control_params.yaml')
+    conv_map = load_yaml(base_dir/'conv_params.yaml')
+    hsum_map = load_yaml(base_dir/'hsum_params.yaml')
 
-    output_file = "Complete_FPGA_FDAS_config.txt"
+    output_file = out_path / "Complete_FPGA_FDAS_config.txt"
     
     with open(output_file, 'w') as f_out:
         f_out.write(get_ctrl_params(args, ctrl_map))
