@@ -7,7 +7,7 @@ import struct
 ### A class filters to hold both multiplicative and uniformly sampling of filter width
 class filters:
     ### Constructor
-    def __init__(self, num_filters, seperation):
+    def __init__(self, num_filters=43, seperation=4):
         ### Multiplicative filters
         nfil = int(
             num_filters,
