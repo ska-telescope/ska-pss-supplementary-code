@@ -89,6 +89,15 @@ TEST(KafkaProducerConfigTest, ToleratesCrlfLineEndings) {
 
 TEST(KafkaProducerConfigTest, ThrowsOnMalformedInteger) {
     auto path = write_temp_config(
-        "bootstrap.servers = b:1\ntopic = t\nproducer_id = p\nretries = banana\n");
-    EXPECT_THROW(KafkaProducerConfig::load(path), std::runtime_error);
+        "bootstrap.servers = b:1\ntopic = t\nproducer_id = p\nretries = not-a-number\n");
+    try {
+        KafkaProducerConfig::load(path);
+        FAIL() << "expected std::runtime_error to be thrown";
+    } catch (const std::runtime_error& e) {
+        const std::string msg = e.what();
+        EXPECT_NE(std::string::npos, msg.find("retries"))
+            << "exception message did not mention key 'retries': " << msg;
+        EXPECT_NE(std::string::npos, msg.find("not-a-number"))
+            << "exception message did not mention value 'not-a-number': " << msg;
+    }
 }
