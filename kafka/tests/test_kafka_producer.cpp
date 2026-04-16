@@ -55,3 +55,40 @@ TEST(KafkaProducerConfigTest, IgnoresUnknownKeysAndComments) {
     KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
     EXPECT_EQ(cfg.bootstrap_servers, "localhost:9092");
 }
+
+TEST(KafkaProducerConfigTest, AcceptsInlineCommentAfterValue) {
+    auto path = write_temp_config(
+        "topic = real-topic # this is a trailing comment\n"
+        "bootstrap.servers = localhost:9092\n"
+        "producer_id = p\n"
+    );
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    EXPECT_EQ(cfg.topic, "real-topic");
+}
+
+TEST(KafkaProducerConfigTest, AcceptsEmptyStringValue) {
+    auto path = write_temp_config("topic =\nbootstrap.servers = localhost:9092\n");
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    EXPECT_EQ(cfg.topic, "");
+}
+
+TEST(KafkaProducerConfigTest, IgnoresBlankLines) {
+    auto path = write_temp_config("\n\ntopic = t\n\n   \nbootstrap.servers = b:1\n");
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    EXPECT_EQ(cfg.topic, "t");
+    EXPECT_EQ(cfg.bootstrap_servers, "b:1");
+}
+
+TEST(KafkaProducerConfigTest, ToleratesCrlfLineEndings) {
+    auto path = write_temp_config(
+        "topic = crlf-topic\r\nbootstrap.servers = host:9092\r\n");
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    EXPECT_EQ(cfg.topic, "crlf-topic");
+    EXPECT_EQ(cfg.bootstrap_servers, "host:9092");
+}
+
+TEST(KafkaProducerConfigTest, ThrowsOnMalformedInteger) {
+    auto path = write_temp_config(
+        "bootstrap.servers = b:1\ntopic = t\nproducer_id = p\nretries = banana\n");
+    EXPECT_THROW(KafkaProducerConfig::load(path), std::runtime_error);
+}
