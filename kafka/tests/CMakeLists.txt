@@ -4,5 +4,13 @@ target_link_libraries(test_kafka_producer
 )
 include(GoogleTest)
 gtest_discover_tests(test_kafka_producer
-    PROPERTIES LABELS "integration"
+    PROPERTIES LABELS "all"
+    TEST_FILTER "*"
 )
+
+# Re-register the offline tests under the unit label so
+# `ctest -L unit` runs broker-free.
+add_test(NAME unit_offline
+         COMMAND test_kafka_producer
+                 --gtest_filter=KafkaProducerConfigTest.*:SpccCandidateMessageTest.*)
+set_tests_properties(unit_offline PROPERTIES LABELS "unit")
