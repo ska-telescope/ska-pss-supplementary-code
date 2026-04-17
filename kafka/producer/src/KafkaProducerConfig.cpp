@@ -3,7 +3,6 @@
 #include <fstream>
 #include <limits>
 #include <stdexcept>
-#include <unordered_map>
 
 namespace {
 std::string trim(std::string s) {
