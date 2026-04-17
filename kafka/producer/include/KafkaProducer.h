@@ -3,7 +3,6 @@
 #include "SpccCandidateMessage.h"
 
 #include <atomic>
-#include <memory>
 #include <string>
 
 struct rd_kafka_s;
@@ -17,10 +16,12 @@ public:
 
     KafkaProducer(const KafkaProducer&)            = delete;
     KafkaProducer& operator=(const KafkaProducer&) = delete;
+    KafkaProducer(KafkaProducer&&)                 = delete;
+    KafkaProducer& operator=(KafkaProducer&&)      = delete;
 
     // Returns true if the produce call was accepted by librdkafka.
     // Delivery success/failure is signalled via the dr_msg_cb and
-    // surfaces through last_error()/flush().
+    // surfaces through last_error_code()/flush().
     bool send(const SpccCandidateMessage& msg);
 
     // Blocks up to timeout_ms for outstanding messages to be delivered.

@@ -2,7 +2,6 @@
 
 #include <librdkafka/rdkafka.h>
 
-#include <cstring>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -44,7 +43,11 @@ KafkaProducer::KafkaProducer(const KafkaProducerConfig& cfg)
 
 KafkaProducer::~KafkaProducer() {
     if (rk_) {
-        rd_kafka_flush(rk_, 2000);
+        rd_kafka_resp_err_t err = rd_kafka_flush(rk_, 2000);
+        if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
+            std::cerr << "KafkaProducer destructor flush did not drain in 2s: "
+                      << rd_kafka_err2str(err) << "\n";
+        }
         rd_kafka_destroy(rk_);
     }
 }
@@ -68,6 +71,7 @@ bool KafkaProducer::send(const SpccCandidateMessage& msg) {
 }
 
 bool KafkaProducer::flush(int timeout_ms) {
+    last_err_.store(0);
     rd_kafka_resp_err_t err = rd_kafka_flush(rk_, timeout_ms);
     if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {
         last_err_.store(static_cast<int>(err));
