@@ -3,7 +3,6 @@
 #include "SpccCandidateMessage.h"
 
 #include <cstdlib>
-#include <cstring>
 #include <iostream>
 #include <random>
 #include <string>
@@ -56,6 +55,11 @@ SpccCandidateMessage build_synthetic(const KafkaProducerConfig& cfg) {
 int main(int argc, char** argv) {
     CliArgs args = parse_args(argc, argv);
 
+    if (args.count <= 0) {
+        std::cerr << "invalid --count (" << args.count << "): must be > 0\n";
+        return 1;
+    }
+
     KafkaProducerConfig cfg;
     try {
         cfg = KafkaProducerConfig::load(args.config_path);
@@ -79,7 +83,9 @@ int main(int argc, char** argv) {
             auto msg = build_synthetic(cfg);
             if (!prod.send(msg)) return 2;
         }
-        if (!prod.flush(10000)) return 3;
+        if (!prod.flush(10000)) {
+            return prod.last_error_code() != 0 ? 2 : 3;
+        }
     } catch (const std::exception& e) {
         std::cerr << "broker error: " << e.what() << "\n";
         return 2;
