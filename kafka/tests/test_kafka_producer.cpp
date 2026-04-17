@@ -304,3 +304,20 @@ TEST(KafkaRoundTrip, SendsAndReceivesSingleMessage) {
 
     rd_kafka_message_destroy(rkm);
 }
+
+TEST(KafkaRoundTrip, SurfacesBrokerErrorOnBadConfig) {
+    KafkaProducerConfig cfg;
+    cfg.bootstrap_servers = "localhost:1";  // closed port
+    cfg.topic = "any";
+    cfg.retries = 0;
+
+    SpccCandidateMessage msg;
+    msg.spccl.scheduling_block_id = "x";
+    msg.spccl.beam_id             = "y";
+    msg.payload.assign(16, 0);
+
+    KafkaProducer prod(cfg);
+    EXPECT_TRUE(prod.send(msg));     // accepted into queue
+    EXPECT_FALSE(prod.flush(3000));  // delivery fails
+    EXPECT_NE(prod.last_error_code(), 0);
+}
