@@ -196,3 +196,111 @@ TEST(SpccCandidateMessageTest, GeneratesUniqueMessageIdsPerEncode) {
     auto e2 = msg.encode();
     EXPECT_NE(e1.value, e2.value);
 }
+
+#include "KafkaProducer.h"
+#include <librdkafka/rdkafka.h>
+#include <chrono>
+#include <cstdlib>
+#include <stdexcept>
+
+namespace {
+std::string getenv_or(const char* k, const char* dflt) {
+    const char* v = std::getenv(k);
+    return v ? std::string(v) : std::string(dflt);
+}
+
+std::string unique_topic_name() {
+    return "test-spcc-" + std::to_string(::getpid()) + "-"
+           + std::to_string(std::chrono::duration_cast<std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()).count());
+}
+
+struct ConsumerHandle {
+    rd_kafka_t* rk = nullptr;
+    ~ConsumerHandle() {
+        if (rk) {
+            rd_kafka_consumer_close(rk);
+            rd_kafka_destroy(rk);
+        }
+    }
+};
+
+ConsumerHandle make_consumer(const std::string& brokers,
+                             const std::string& topic,
+                             const std::string& group)
+{
+    char errstr[512];
+    rd_kafka_conf_t* conf = rd_kafka_conf_new();
+    rd_kafka_conf_set(conf, "bootstrap.servers", brokers.c_str(), errstr, sizeof errstr);
+    rd_kafka_conf_set(conf, "group.id", group.c_str(), errstr, sizeof errstr);
+    rd_kafka_conf_set(conf, "auto.offset.reset", "earliest", errstr, sizeof errstr);
+    rd_kafka_conf_set(conf, "enable.auto.commit", "false", errstr, sizeof errstr);
+    rd_kafka_conf_set(conf, "fetch.message.max.bytes", "4194304", errstr, sizeof errstr);
+
+    ConsumerHandle h;
+    h.rk = rd_kafka_new(RD_KAFKA_CONSUMER, conf, errstr, sizeof errstr);
+    if (!h.rk) { rd_kafka_conf_destroy(conf); throw std::runtime_error(errstr); }
+    rd_kafka_poll_set_consumer(h.rk);
+
+    rd_kafka_topic_partition_list_t* parts = rd_kafka_topic_partition_list_new(1);
+    rd_kafka_topic_partition_list_add(parts, topic.c_str(), RD_KAFKA_PARTITION_UA);
+    rd_kafka_subscribe(h.rk, parts);
+    rd_kafka_topic_partition_list_destroy(parts);
+    return h;
+}
+}  // namespace
+
+TEST(KafkaRoundTrip, SendsAndReceivesSingleMessage) {
+    KafkaProducerConfig cfg;
+    cfg.bootstrap_servers = getenv_or("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092");
+    cfg.topic             = unique_topic_name();
+
+    auto consumer = make_consumer(cfg.bootstrap_servers, cfg.topic,
+                                  "test-grp-" + std::to_string(::getpid()));
+
+    SpccCandidateMessage msg;
+    msg.producer_id = cfg.producer_id;
+    msg.spccl.scheduling_block_id = "sbi-rt";
+    msg.spccl.beam_id             = "beam-rt";
+    msg.spccl.mjd                 = 60001.25;
+    msg.spccl.dm                  = 42.0f;
+    msg.spccl.width               = 0.002f;
+    msg.spccl.snr                 = 9.5f;
+    msg.payload.assign(2300000, 0xCC);
+
+    auto expected_checksum = sha256_hex(msg.payload);
+
+    KafkaProducer prod(cfg);
+    ASSERT_TRUE(prod.send(msg));
+    ASSERT_TRUE(prod.flush(10000));
+
+    rd_kafka_message_t* rkm = nullptr;
+    for (int i = 0; i < 50 && !rkm; ++i) {
+        rkm = rd_kafka_consumer_poll(consumer.rk, 1000);
+        if (rkm && rkm->err) { rd_kafka_message_destroy(rkm); rkm = nullptr; }
+    }
+    ASSERT_NE(rkm, nullptr) << "no message received within 50s";
+
+    std::string key(static_cast<const char*>(rkm->key), rkm->key_len);
+    EXPECT_EQ(key, "sbi-rt:beam-rt");
+
+    const auto* val = static_cast<const std::uint8_t*>(rkm->payload);
+    ASSERT_GE(rkm->len, 4u);
+    std::uint32_t env_len =
+        (std::uint32_t(val[0]) << 24) | (std::uint32_t(val[1]) << 16) |
+        (std::uint32_t(val[2]) << 8)  |  std::uint32_t(val[3]);
+    ASSERT_EQ(rkm->len, 4 + env_len + msg.payload.size());
+
+    msgpack::object_handle oh = msgpack::unpack(
+        reinterpret_cast<const char*>(val + 4), env_len);
+    msgpack::object obj = oh.get();
+    std::map<std::string, msgpack::object> fields;
+    for (std::uint32_t i = 0; i < obj.via.map.size; ++i)
+        fields[obj.via.map.ptr[i].key.as<std::string>()] = obj.via.map.ptr[i].val;
+
+    EXPECT_EQ(fields.at("payload_size_bytes").as<std::uint32_t>(),
+              std::uint32_t(msg.payload.size()));
+    EXPECT_EQ(fields.at("checksum_sha256").as<std::string>(), expected_checksum);
+
+    rd_kafka_message_destroy(rkm);
+}
