@@ -15,6 +15,8 @@ struct SpcclFields {
 struct EncodedMessage {
     std::string key;
     std::vector<std::uint8_t> value;
+    std::string message_id;
+    std::uint64_t timestamp_utc_ms = 0;
 };
 
 class SpccCandidateMessage {

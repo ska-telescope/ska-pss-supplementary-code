@@ -53,12 +53,17 @@ KafkaProducer::~KafkaProducer() {
 }
 
 bool KafkaProducer::send(const SpccCandidateMessage& msg) {
-    auto encoded = msg.encode();
+    return send(msg.encode());
+}
+
+bool KafkaProducer::send(const EncodedMessage& enc) {
+    // Safe: RD_KAFKA_MSG_F_COPY makes librdkafka copy the buffers immediately,
+    // so it never writes through the pointers we hand it.
     rd_kafka_resp_err_t err = rd_kafka_producev(
         rk_,
         RD_KAFKA_V_TOPIC(topic_.c_str()),
-        RD_KAFKA_V_KEY(encoded.key.data(), encoded.key.size()),
-        RD_KAFKA_V_VALUE(encoded.value.data(), encoded.value.size()),
+        RD_KAFKA_V_KEY(const_cast<char*>(enc.key.data()), enc.key.size()),
+        RD_KAFKA_V_VALUE(const_cast<std::uint8_t*>(enc.value.data()), enc.value.size()),
         RD_KAFKA_V_MSGFLAGS(RD_KAFKA_MSG_F_COPY),
         RD_KAFKA_V_END);
     if (err != RD_KAFKA_RESP_ERR_NO_ERROR) {

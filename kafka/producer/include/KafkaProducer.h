@@ -23,6 +23,7 @@ public:
     // Delivery success/failure is signalled via the dr_msg_cb and
     // surfaces through last_error_code()/flush().
     bool send(const SpccCandidateMessage& msg);
+    bool send(const EncodedMessage& enc);
 
     // Blocks up to timeout_ms for outstanding messages to be delivered.
     // Returns true if all delivered successfully.

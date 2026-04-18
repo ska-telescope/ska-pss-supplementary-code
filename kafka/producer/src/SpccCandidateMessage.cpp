@@ -90,5 +90,7 @@ EncodedMessage SpccCandidateMessage::encode() const {
     std::memcpy(out.value.data() + 4, env.data(), env_len);
     std::memcpy(out.value.data() + 4 + env_len,
                 payload.data(), payload.size());
+    out.message_id = mid;
+    out.timestamp_utc_ms = ts;
     return out;
 }
