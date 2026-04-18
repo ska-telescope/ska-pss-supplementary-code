@@ -59,3 +59,33 @@ Sample `--compact` output:
 ----+----------------------------+-----------+----------+-----------+--------------------------------------
   1 | sbi-test-0001:beam-000     |   2.19 MB |    357 B |   2.19 MB | dd560ba9-b095-4212-8a94-e789fa987d17
 ```
+
+## Verify with the consumer helper
+
+`kafka/tools/consume_compact.py` reads messages back from the broker and prints
+them in the same `--compact` table layout, so producer and consumer rows can be
+diff-compared by `message_id`. It needs `confluent-kafka` and `msgpack` — a
+conda env keeps those out of the system Python:
+
+```
+conda create -n pss-kafka -c conda-forge -y python=3.11 python-confluent-kafka msgpack-python
+conda activate pss-kafka
+```
+
+Default mode (no `--count`) tails the topic from the current end — leave it
+running, then send messages from another shell and watch them appear.
+
+```
+python kafka/tools/consume_compact.py                    # tail forever (Ctrl-C to stop)
+python kafka/tools/consume_compact.py --count 5          # last 5 then exit
+python kafka/tools/consume_compact.py --from-beginning   # all existing, then keep tailing
+```
+
+Round-trip check:
+
+```
+kafka/build/producer/kafka_producer_cli --config kafka/producer/config/producer.conf --count 3 --compact
+python kafka/tools/consume_compact.py --count 3
+```
+
+The `message_id` column should match line-for-line between the two tables.
