@@ -10,6 +10,7 @@
 #include <random>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -64,20 +65,35 @@ SpccCandidateMessage build_synthetic(const KafkaProducerConfig& cfg) {
     return m;
 }
 
-SpccCandidateMessage build_message(const KafkaProducerConfig& cfg,
-                                   const std::string& payload_path,
-                                   const std::string& meta_path) {
-    SpccCandidateMessage m = build_synthetic(cfg);
-    if (!payload_path.empty()) m.payload = load_payload_bytes(payload_path);
-    if (!meta_path.empty()) {
-        SpcclOverrides o = load_spccl_meta(meta_path);
-        if (o.has_scheduling_block_id) m.spccl.scheduling_block_id = o.scheduling_block_id;
-        if (o.has_beam_id)             m.spccl.beam_id             = o.beam_id;
-        if (o.has_mjd)                 m.spccl.mjd                 = o.mjd;
-        if (o.has_dm)                  m.spccl.dm                  = o.dm;
-        if (o.has_width)               m.spccl.width               = o.width;
-        if (o.has_snr)                 m.spccl.snr                 = o.snr;
+struct CliOverrides {
+    bool has_payload = false;
+    std::vector<std::uint8_t> payload;
+    SpcclOverrides meta;
+};
+
+CliOverrides load_overrides(const std::string& payload_path,
+                            const std::string& meta_path) {
+    CliOverrides o;
+    if (!payload_path.empty()) {
+        o.payload = load_payload_bytes(payload_path);
+        o.has_payload = true;
     }
+    if (!meta_path.empty()) {
+        o.meta = load_spccl_meta(meta_path);
+    }
+    return o;
+}
+
+SpccCandidateMessage build_message(const KafkaProducerConfig& cfg,
+                                   const CliOverrides& ov) {
+    SpccCandidateMessage m = build_synthetic(cfg);
+    if (ov.has_payload) m.payload = ov.payload;
+    if (ov.meta.has_scheduling_block_id) m.spccl.scheduling_block_id = ov.meta.scheduling_block_id;
+    if (ov.meta.has_beam_id)             m.spccl.beam_id             = ov.meta.beam_id;
+    if (ov.meta.has_mjd)                 m.spccl.mjd                 = ov.meta.mjd;
+    if (ov.meta.has_dm)                  m.spccl.dm                  = ov.meta.dm;
+    if (ov.meta.has_width)               m.spccl.width               = ov.meta.width;
+    if (ov.meta.has_snr)                 m.spccl.snr                 = ov.meta.snr;
     return m;
 }
 
@@ -159,16 +175,18 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    CliOverrides ov;
+    try {
+        ov = load_overrides(args.payload_path, args.meta_path);
+    } catch (const std::exception& e) {
+        std::cerr << "input error: " << e.what() << "\n";
+        return 1;
+    }
+
     if (args.dry_run) {
         if (args.compact) print_compact_header();
         for (int i = 0; i < args.count; ++i) {
-            SpccCandidateMessage msg;
-            try {
-                msg = build_message(cfg, args.payload_path, args.meta_path);
-            } catch (const std::runtime_error& e) {
-                std::cerr << "input error: " << e.what() << "\n";
-                return 1;
-            }
+            auto msg = build_message(cfg, ov);
             auto enc = msg.encode();
             if (args.compact) print_compact_row(i + 1, msg, enc);
             else              print_block(i + 1, args.count, msg, enc);
@@ -180,13 +198,7 @@ int main(int argc, char** argv) {
         KafkaProducer prod(cfg);
         if (args.compact) print_compact_header();
         for (int i = 0; i < args.count; ++i) {
-            SpccCandidateMessage msg;
-            try {
-                msg = build_message(cfg, args.payload_path, args.meta_path);
-            } catch (const std::runtime_error& e) {
-                std::cerr << "input error: " << e.what() << "\n";
-                return 1;
-            }
+            auto msg = build_message(cfg, ov);
             auto enc = msg.encode();
             if (!prod.send(enc)) return 2;
             if (args.compact) print_compact_row(i + 1, msg, enc);
