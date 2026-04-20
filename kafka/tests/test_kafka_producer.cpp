@@ -316,6 +316,40 @@ TEST(SpccInputLoaderTest, ThrowsOnNonMapMeta) {
     EXPECT_THROW(load_spccl_meta(path), std::runtime_error);
 }
 
+TEST(SpccInputLoaderTest, ThrowsOnWrongFieldType) {
+    std::string path = "/tmp/kpc_meta_wrongtype_" + std::to_string(::getpid()) + ".msgpack";
+    msgpack::sbuffer buf;
+    msgpack::packer<msgpack::sbuffer> p(buf);
+    p.pack_map(1);
+    p.pack(std::string("mjd")); p.pack(std::string("not-a-number"));
+    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
+
+    try {
+        load_spccl_meta(path);
+        FAIL() << "expected std::runtime_error";
+    } catch (const std::runtime_error& e) {
+        std::string msg = e.what();
+        EXPECT_NE(msg.find("mjd"),  std::string::npos) << msg;
+        EXPECT_NE(msg.find(path),   std::string::npos) << msg;
+    }
+}
+
+TEST(SpccInputLoaderTest, ThrowsOnMalformedMsgpack) {
+    std::string path = "/tmp/kpc_meta_garbage_" + std::to_string(::getpid()) + ".msgpack";
+    {
+        std::ofstream f(path, std::ios::binary);
+        const char junk[] = {(char)0xFE, (char)0xFE, (char)0xFE, (char)0xFE, (char)0xFE};
+        f.write(junk, sizeof junk);
+    }
+    try {
+        load_spccl_meta(path);
+        FAIL() << "expected std::runtime_error";
+    } catch (const std::runtime_error& e) {
+        std::string msg = e.what();
+        EXPECT_NE(msg.find(path), std::string::npos) << msg;
+    }
+}
+
 TEST(KafkaRoundTrip, SendsAndReceivesSingleMessage) {
     KafkaProducerConfig cfg;
     cfg.bootstrap_servers = getenv_or("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092");

@@ -25,7 +25,12 @@ SpcclOverrides load_spccl_meta(const std::string& path) {
     if (n && !f.read(raw.data(), n))
         throw std::runtime_error("meta file read failed: " + path);
 
-    msgpack::object_handle oh = msgpack::unpack(raw.data(), raw.size());
+    msgpack::object_handle oh;
+    try {
+        oh = msgpack::unpack(raw.data(), raw.size());
+    } catch (const std::exception& e) {
+        throw std::runtime_error("meta file is not valid msgpack: " + path + ": " + e.what());
+    }
     msgpack::object obj = oh.get();
     if (obj.type != msgpack::type::MAP)
         throw std::runtime_error("meta file root is not a msgpack map: " + path);
@@ -44,7 +49,8 @@ SpcclOverrides load_spccl_meta(const std::string& path) {
             else if (k == "snr")                 { o.snr   = kv.val.as<float>();  o.has_snr   = true; }
         } catch (const std::exception& e) {
             std::ostringstream msg;
-            msg << "meta field '" << k << "' has unexpected type: " << e.what();
+            msg << "meta field '" << k << "' in " << path
+                << " has unexpected type: " << e.what();
             throw std::runtime_error(msg.str());
         }
     }
