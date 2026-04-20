@@ -2,6 +2,7 @@ add_library(kafka_producer STATIC
     src/KafkaProducerConfig.cpp
     src/SpccCandidateMessage.cpp
     src/KafkaProducer.cpp
+    src/SpccInputLoader.cpp
 )
 target_include_directories(kafka_producer
     PUBLIC  ${CMAKE_CURRENT_SOURCE_DIR}/include ${MSGPACK_INCLUDE_DIR}

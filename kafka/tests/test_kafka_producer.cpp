@@ -250,6 +250,25 @@ ConsumerHandle make_consumer(const std::string& brokers,
 }
 }  // namespace
 
+#include "SpccInputLoader.h"
+
+TEST(SpccInputLoaderTest, LoadsRawPayloadBytes) {
+    std::string path = "/tmp/kpc_payload_" + std::to_string(::getpid()) + ".bin";
+    {
+        std::ofstream f(path, std::ios::binary);
+        const char bytes[] = {0x01, 0x02, 0x03, 0x04, 0x05};
+        f.write(bytes, sizeof bytes);
+    }
+    auto v = load_payload_bytes(path);
+    ASSERT_EQ(v.size(), 5u);
+    EXPECT_EQ(v[0], 0x01);
+    EXPECT_EQ(v[4], 0x05);
+}
+
+TEST(SpccInputLoaderTest, ThrowsOnMissingPayloadFile) {
+    EXPECT_THROW(load_payload_bytes("/no/such/blob.bin"), std::runtime_error);
+}
+
 TEST(KafkaRoundTrip, SendsAndReceivesSingleMessage) {
     KafkaProducerConfig cfg;
     cfg.bootstrap_servers = getenv_or("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092");

@@ -12,5 +12,5 @@ gtest_discover_tests(test_kafka_producer
 # `ctest -L unit` runs broker-free.
 add_test(NAME unit_offline
          COMMAND test_kafka_producer
-                 --gtest_filter=KafkaProducerConfigTest.*:SpccCandidateMessageTest.*)
+                 --gtest_filter=KafkaProducerConfigTest.*:SpccCandidateMessageTest.*:SpccInputLoaderTest.*)
 set_tests_properties(unit_offline PROPERTIES LABELS "unit")
