@@ -1,5 +1,4 @@
 #pragma once
-#include "SpccCandidateMessage.h"
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -16,3 +15,12 @@ struct SpcclOverrides {
 };
 
 SpcclOverrides load_spccl_meta(const std::string& path);
+
+struct CliOverrides {
+    bool has_payload = false;
+    std::vector<std::uint8_t> payload;
+    SpcclOverrides meta;
+};
+
+CliOverrides load_overrides(const std::string& payload_path,
+                            const std::string& meta_path);

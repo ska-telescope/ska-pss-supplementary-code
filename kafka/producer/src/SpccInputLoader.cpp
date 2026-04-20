@@ -17,6 +17,11 @@ std::vector<std::uint8_t> load_payload_bytes(const std::string& path) {
 }
 
 SpcclOverrides load_spccl_meta(const std::string& path) {
+    // Numeric coercion is intentionally lenient: msgpack-cxx accepts
+    // integer values for .as<float>()/.as<double>() and narrows FLOAT64
+    // to float silently. Unknown keys are ignored and duplicate keys
+    // take the last-write-wins value. Do not tighten without updating
+    // the make_fixture.py contract.
     std::ifstream f(path, std::ios::binary | std::ios::ate);
     if (!f) throw std::runtime_error("meta file not readable: " + path);
     std::streamsize n = f.tellg();
@@ -53,6 +58,19 @@ SpcclOverrides load_spccl_meta(const std::string& path) {
                 << " has unexpected type: " << e.what();
             throw std::runtime_error(msg.str());
         }
+    }
+    return o;
+}
+
+CliOverrides load_overrides(const std::string& payload_path,
+                            const std::string& meta_path) {
+    CliOverrides o;
+    if (!payload_path.empty()) {
+        o.payload = load_payload_bytes(payload_path);
+        o.has_payload = true;
+    }
+    if (!meta_path.empty()) {
+        o.meta = load_spccl_meta(meta_path);
     }
     return o;
 }

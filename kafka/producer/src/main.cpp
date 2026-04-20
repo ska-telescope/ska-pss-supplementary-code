@@ -65,25 +65,6 @@ SpccCandidateMessage build_synthetic(const KafkaProducerConfig& cfg) {
     return m;
 }
 
-struct CliOverrides {
-    bool has_payload = false;
-    std::vector<std::uint8_t> payload;
-    SpcclOverrides meta;
-};
-
-CliOverrides load_overrides(const std::string& payload_path,
-                            const std::string& meta_path) {
-    CliOverrides o;
-    if (!payload_path.empty()) {
-        o.payload = load_payload_bytes(payload_path);
-        o.has_payload = true;
-    }
-    if (!meta_path.empty()) {
-        o.meta = load_spccl_meta(meta_path);
-    }
-    return o;
-}
-
 SpccCandidateMessage build_message(const KafkaProducerConfig& cfg,
                                    const CliOverrides& ov) {
     SpccCandidateMessage m = build_synthetic(cfg);
