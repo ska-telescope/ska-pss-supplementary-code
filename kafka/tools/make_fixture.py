@@ -9,6 +9,7 @@ Example:
 """
 import argparse
 import os
+import shutil
 import struct
 import sys
 
@@ -27,10 +28,11 @@ def main() -> int:
                     help="where to write the payload blob")
     ap.add_argument("--meta-out",    required=True,
                     help="where to write the msgpack meta sidecar")
-    ap.add_argument("--payload-size", type=int, default=2_300_000,
-                    help="bytes of /dev/urandom to write (default: 2.3 MB)")
-    ap.add_argument("--payload-from",
-                    help="copy bytes from this file instead of /dev/urandom")
+    src = ap.add_mutually_exclusive_group()
+    src.add_argument("--payload-size", type=int, default=None,
+                     help="bytes of /dev/urandom to write (default: 2.3 MB)")
+    src.add_argument("--payload-from",
+                     help="copy bytes from this file instead of /dev/urandom")
     ap.add_argument("--sbi",   dest="scheduling_block_id",
                     help="override SPCCL scheduling_block_id")
     ap.add_argument("--beam",  dest="beam_id",
@@ -48,10 +50,11 @@ def main() -> int:
     # Payload
     if args.payload_from:
         with open(args.payload_from, "rb") as src, open(args.payload_out, "wb") as dst:
-            dst.write(src.read())
+            shutil.copyfileobj(src, dst)
     else:
+        size = args.payload_size if args.payload_size is not None else 2_300_000
         with open(args.payload_out, "wb") as dst:
-            dst.write(os.urandom(args.payload_size))
+            dst.write(os.urandom(size))
 
     # Meta: only include keys the user set. float32 fields are pinned via
     # use_single_float=True; float64 keys (mjd) are packed with a separate
