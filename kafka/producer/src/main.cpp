@@ -1,6 +1,7 @@
 #include "KafkaProducer.h"
 #include "KafkaProducerConfig.h"
 #include "SpccCandidateMessage.h"
+#include "SpccInputLoader.h"
 
 #include <cstdlib>
 #include <ctime>
@@ -17,12 +18,17 @@ struct CliArgs {
     int  count   = 1;
     bool dry_run = false;
     bool compact = false;
+    std::string payload_path;
+    std::string meta_path;
 };
 
 void print_usage() {
     std::cout
-      << "Usage: kafka_producer_cli [--config <path>] [--count N] [--dry-run] [--compact]\n"
-      << "  --compact   one-row-per-message table instead of vertical blocks\n"
+      << "Usage: kafka_producer_cli [--config <path>] [--count N] [--dry-run] [--compact]"
+         " [--payload-file <path>] [--meta-file <path>]\n"
+      << "  --compact        one-row-per-message table instead of vertical blocks\n"
+      << "  --payload-file   read raw payload bytes from <path> instead of synthesising\n"
+      << "  --meta-file      override SPCCL fields from msgpack meta-file at <path>\n"
       << "Exit codes: 0 ok, 1 config error, 2 broker error, 3 flush timeout\n";
 }
 
@@ -34,6 +40,8 @@ CliArgs parse_args(int argc, char** argv) {
         else if (s == "--count"  && i + 1 < argc)  a.count = std::atoi(argv[++i]);
         else if (s == "--dry-run")                 a.dry_run = true;
         else if (s == "--compact")                 a.compact = true;
+        else if (s == "--payload-file" && i + 1 < argc) a.payload_path = argv[++i];
+        else if (s == "--meta-file"    && i + 1 < argc) a.meta_path    = argv[++i];
         else if (s == "-h" || s == "--help")       { print_usage(); std::exit(0); }
         else { std::cerr << "unknown arg: " << s << "\n"; print_usage(); std::exit(1); }
     }
@@ -53,6 +61,23 @@ SpccCandidateMessage build_synthetic(const KafkaProducerConfig& cfg) {
     m.payload.resize(cfg.synthetic_payload_bytes);
     std::mt19937 rng{std::random_device{}()};
     for (auto& b : m.payload) b = static_cast<std::uint8_t>(rng() & 0xFF);
+    return m;
+}
+
+SpccCandidateMessage build_message(const KafkaProducerConfig& cfg,
+                                   const std::string& payload_path,
+                                   const std::string& meta_path) {
+    SpccCandidateMessage m = build_synthetic(cfg);
+    if (!payload_path.empty()) m.payload = load_payload_bytes(payload_path);
+    if (!meta_path.empty()) {
+        SpcclOverrides o = load_spccl_meta(meta_path);
+        if (o.has_scheduling_block_id) m.spccl.scheduling_block_id = o.scheduling_block_id;
+        if (o.has_beam_id)             m.spccl.beam_id             = o.beam_id;
+        if (o.has_mjd)                 m.spccl.mjd                 = o.mjd;
+        if (o.has_dm)                  m.spccl.dm                  = o.dm;
+        if (o.has_width)               m.spccl.width               = o.width;
+        if (o.has_snr)                 m.spccl.snr                 = o.snr;
+    }
     return m;
 }
 
@@ -137,7 +162,13 @@ int main(int argc, char** argv) {
     if (args.dry_run) {
         if (args.compact) print_compact_header();
         for (int i = 0; i < args.count; ++i) {
-            auto msg = build_synthetic(cfg);
+            SpccCandidateMessage msg;
+            try {
+                msg = build_message(cfg, args.payload_path, args.meta_path);
+            } catch (const std::runtime_error& e) {
+                std::cerr << "input error: " << e.what() << "\n";
+                return 1;
+            }
             auto enc = msg.encode();
             if (args.compact) print_compact_row(i + 1, msg, enc);
             else              print_block(i + 1, args.count, msg, enc);
@@ -149,7 +180,13 @@ int main(int argc, char** argv) {
         KafkaProducer prod(cfg);
         if (args.compact) print_compact_header();
         for (int i = 0; i < args.count; ++i) {
-            auto msg = build_synthetic(cfg);
+            SpccCandidateMessage msg;
+            try {
+                msg = build_message(cfg, args.payload_path, args.meta_path);
+            } catch (const std::runtime_error& e) {
+                std::cerr << "input error: " << e.what() << "\n";
+                return 1;
+            }
             auto enc = msg.encode();
             if (!prod.send(enc)) return 2;
             if (args.compact) print_compact_row(i + 1, msg, enc);
