@@ -13,4 +13,6 @@ std::vector<std::uint8_t> load_payload_bytes(const std::string& path) {
     return buf;
 }
 
-SpcclOverrides load_spccl_meta(const std::string&) { return {}; }  // filled in Task 2
+SpcclOverrides load_spccl_meta(const std::string&) {
+    throw std::logic_error("load_spccl_meta: not yet implemented");
+}

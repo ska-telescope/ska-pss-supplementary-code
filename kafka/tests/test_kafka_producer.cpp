@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "KafkaProducerConfig.h"
+#include "SpccInputLoader.h"
 #include <fstream>
 
 namespace {
@@ -250,8 +251,6 @@ ConsumerHandle make_consumer(const std::string& brokers,
 }
 }  // namespace
 
-#include "SpccInputLoader.h"
-
 TEST(SpccInputLoaderTest, LoadsRawPayloadBytes) {
     std::string path = "/tmp/kpc_payload_" + std::to_string(::getpid()) + ".bin";
     {
@@ -267,6 +266,10 @@ TEST(SpccInputLoaderTest, LoadsRawPayloadBytes) {
 
 TEST(SpccInputLoaderTest, ThrowsOnMissingPayloadFile) {
     EXPECT_THROW(load_payload_bytes("/no/such/blob.bin"), std::runtime_error);
+}
+
+TEST(SpccInputLoaderTest, MetaLoaderStubThrows) {
+    EXPECT_THROW(load_spccl_meta("/tmp/anything.msgpack"), std::logic_error);
 }
 
 TEST(KafkaRoundTrip, SendsAndReceivesSingleMessage) {
