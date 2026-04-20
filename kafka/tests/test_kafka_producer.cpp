@@ -268,8 +268,52 @@ TEST(SpccInputLoaderTest, ThrowsOnMissingPayloadFile) {
     EXPECT_THROW(load_payload_bytes("/no/such/blob.bin"), std::runtime_error);
 }
 
-TEST(SpccInputLoaderTest, MetaLoaderStubThrows) {
-    EXPECT_THROW(load_spccl_meta("/tmp/anything.msgpack"), std::logic_error);
+TEST(SpccInputLoaderTest, LoadsAllMetaFields) {
+    std::string path = "/tmp/kpc_meta_" + std::to_string(::getpid()) + ".msgpack";
+    msgpack::sbuffer buf;
+    msgpack::packer<msgpack::sbuffer> p(buf);
+    p.pack_map(6);
+    p.pack(std::string("scheduling_block_id")); p.pack(std::string("sbi-real"));
+    p.pack(std::string("beam_id"));             p.pack(std::string("beam-42"));
+    p.pack(std::string("mjd"));                 p.pack(double(60123.25));
+    p.pack(std::string("dm"));                  p.pack(float(77.5f));
+    p.pack(std::string("width"));               p.pack(float(0.004f));
+    p.pack(std::string("snr"));                 p.pack(float(14.2f));
+    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
+
+    SpcclOverrides o = load_spccl_meta(path);
+    EXPECT_TRUE(o.has_scheduling_block_id); EXPECT_EQ(o.scheduling_block_id, "sbi-real");
+    EXPECT_TRUE(o.has_beam_id);             EXPECT_EQ(o.beam_id, "beam-42");
+    EXPECT_TRUE(o.has_mjd);                 EXPECT_DOUBLE_EQ(o.mjd, 60123.25);
+    EXPECT_TRUE(o.has_dm);                  EXPECT_FLOAT_EQ(o.dm, 77.5f);
+    EXPECT_TRUE(o.has_width);               EXPECT_FLOAT_EQ(o.width, 0.004f);
+    EXPECT_TRUE(o.has_snr);                 EXPECT_FLOAT_EQ(o.snr, 14.2f);
+}
+
+TEST(SpccInputLoaderTest, LeavesUnsetFieldsUnflagged) {
+    std::string path = "/tmp/kpc_meta_partial_" + std::to_string(::getpid()) + ".msgpack";
+    msgpack::sbuffer buf;
+    msgpack::packer<msgpack::sbuffer> p(buf);
+    p.pack_map(1);
+    p.pack(std::string("dm")); p.pack(float(99.0f));
+    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
+
+    SpcclOverrides o = load_spccl_meta(path);
+    EXPECT_FALSE(o.has_scheduling_block_id);
+    EXPECT_FALSE(o.has_beam_id);
+    EXPECT_FALSE(o.has_mjd);
+    EXPECT_TRUE(o.has_dm); EXPECT_FLOAT_EQ(o.dm, 99.0f);
+    EXPECT_FALSE(o.has_width);
+    EXPECT_FALSE(o.has_snr);
+}
+
+TEST(SpccInputLoaderTest, ThrowsOnNonMapMeta) {
+    std::string path = "/tmp/kpc_meta_bad_" + std::to_string(::getpid()) + ".msgpack";
+    msgpack::sbuffer buf;
+    msgpack::packer<msgpack::sbuffer> p(buf);
+    p.pack(std::string("not-a-map"));
+    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
+    EXPECT_THROW(load_spccl_meta(path), std::runtime_error);
 }
 
 TEST(KafkaRoundTrip, SendsAndReceivesSingleMessage) {
