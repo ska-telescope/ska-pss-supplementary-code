@@ -42,7 +42,8 @@ kafka/build/producer/kafka_producer_cli \
     --config kafka/producer/config/producer.conf
 ```
 
-Flags: `--config <path>`, `--count N`, `--dry-run`, `--compact`.
+Flags: `--config <path>`, `--count N`, `--dry-run`, `--compact`,
+`--payload-file <path>`, `--meta-file <path>`.
 By default each shipped message is printed as a vertical block; `--compact`
 switches to a one-row-per-message table.
 Exit codes: 0 ok, 1 config error, 2 broker error, 3 flush timeout.
@@ -73,6 +74,42 @@ Sample `--compact` output:
 ----+----------------------------+-----------+----------+-----------+--------------------------------------
   1 | sbi-test-0001:beam-000     |   2.19 MB |    357 B |   2.19 MB | dd560ba9-b095-4212-8a94-e789fa987d17
 ```
+
+### Sending a real payload
+
+By default each run ships synthetic random bytes alongside SPCCL scalars
+derived from the config file. Two optional flags let you replace either
+slice with real inputs; absent flags fall through to synthetic defaults,
+so they can be used independently or together.
+
+- `--payload-file <path>` replaces the random payload with the contents
+  of `<path>`, read verbatim (any size up to `message.max.bytes`).
+- `--meta-file <path>` overrides any subset of the six SPCCL scalars
+  from a msgpack map with optional keys `scheduling_block_id`, `beam_id`,
+  `mjd`, `dm`, `width`, and `snr`. Keys absent from the map keep their
+  config-driven defaults.
+
+Bad paths, malformed msgpack, and wrong-typed values fail fast with
+`input error: ...` on stderr and exit code 1, before any broker
+connection is opened.
+
+`kafka/tools/make_fixture.py` writes a compatible fixture pair. It uses
+the same `pss-kafka` conda env documented below:
+
+```
+conda activate pss-kafka
+python kafka/tools/make_fixture.py \
+    --payload-out /tmp/p.bin --meta-out /tmp/m.msgpack \
+    --sbi sbi-real --beam beam-42 --mjd 60123.25 --dm 77.5
+
+kafka/build/producer/kafka_producer_cli \
+    --config kafka/producer/config/producer.conf \
+    --payload-file /tmp/p.bin --meta-file /tmp/m.msgpack --count 1
+```
+
+The fixture helper's `--payload-size` (random bytes, default 2.3 MB) and
+`--payload-from <path>` (copy verbatim from an existing file) are
+mutually exclusive.
 
 ## Verify with the consumer helper
 
