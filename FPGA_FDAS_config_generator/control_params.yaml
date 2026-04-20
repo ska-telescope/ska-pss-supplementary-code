@@ -1,0 +1,7 @@
+# Format: "Address": "Value_or_Calculation_Placeholder"
+registers:
+  "00800080": "CALC_OVERLAP"         # CTRL OVRERLAP_SIZE[9:0],  2*largest filter size
+  "008000C0": "CALC_NUM_SAMPS"       # CTRL FOP_SAMPLE_NUM[22:0], size of the frequency axis in number of bins (up to 4200 MH)
+  "008000D0": "00000003"             # CTRL IFFT_LOOP_NUM[5:0]
+  "00800140": "00000000"             # CTRL MANUAL_TRIGGER
+  "00800180": "00000000"             # CTRL MANUAL_ENABLE
