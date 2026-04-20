@@ -83,7 +83,7 @@ slice with real inputs; absent flags fall through to synthetic defaults,
 so they can be used independently or together.
 
 - `--payload-file <path>` replaces the random payload with the contents
-  of `<path>`, read verbatim (any size up to `message.max.bytes`).
+  of `<path>`, read verbatim (any size the broker's `message.max.bytes` allows; enforced at send, not load).
 - `--meta-file <path>` overrides any subset of the six SPCCL scalars
   from a msgpack map with optional keys `scheduling_block_id`, `beam_id`,
   `mjd`, `dm`, `width`, and `snr`. Keys absent from the map keep their
