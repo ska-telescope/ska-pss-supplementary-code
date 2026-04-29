@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pss-sdp-consumer"
+version = "0.1.0"
+description = "PSS to SDP single-pulse-candidate Kafka consumer (AT4-2181)"
+requires-python = ">=3.10"
+dependencies = [
+    "confluent-kafka>=2.3,<3",
+    "msgpack>=1.0,<2",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.scripts]
+pss-sdp-consumer = "pss_sdp_consumer.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["pss_sdp_consumer*"]
+
+[tool.pytest.ini_options]
+markers = [
+    "unit: offline tests, no broker required",
+    "integration: requires a running Kafka broker on KAFKA_BOOTSTRAP_SERVERS (default localhost:9092)",
+]
