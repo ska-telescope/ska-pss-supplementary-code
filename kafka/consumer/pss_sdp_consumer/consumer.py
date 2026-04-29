@@ -1,0 +1,71 @@
+# kafka/consumer/pss_sdp_consumer/consumer.py
+from __future__ import annotations
+import importlib
+import logging
+import threading
+from typing import Any
+
+from confluent_kafka import Consumer as KafkaConsumer
+
+from .config import ConsumerConfig
+from .contract import EnvelopeDecodeError, ContractViolationError, parse_value, validate
+from .handlers import Handler
+from .metrics import ThroughputLogger
+
+_log = logging.getLogger(__name__)
+
+
+def resolve_handler(spec: str) -> Handler:
+    if ":" not in spec:
+        raise ValueError(f"handler spec {spec!r} must be 'module:callable'")
+    mod_name, _, attr = spec.partition(":")
+    mod = importlib.import_module(mod_name)
+    return getattr(mod, attr)
+
+
+class Consumer:
+    def __init__(self, config: ConsumerConfig, handler: Handler | None = None):
+        self._config = config
+        self._handler = handler if handler is not None else resolve_handler(config.handler)
+        client_conf = dict(config.client_conf)
+        # Force at-least-once semantics regardless of config file content.
+        client_conf["enable.auto.commit"] = "false"
+        self._client = KafkaConsumer(client_conf)
+        self._metrics = ThroughputLogger(interval_s=config.metrics_interval_s)
+        self._stop = threading.Event()
+
+    def stop(self) -> None:
+        self._stop.set()
+
+    def run(self) -> None:
+        self._client.subscribe([self._config.topic])
+        try:
+            while not self._stop.is_set():
+                msg = self._client.poll(timeout=1.0)
+                self._metrics.maybe_log()
+                if msg is None:
+                    continue
+                if msg.error():
+                    _log.warning("client error: %s", msg.error())
+                    # Batch commits are a future optimisation; manual sync per-message
+                    # commit is the simplest correct at-least-once shape for now.
+                    continue
+                try:
+                    envelope, payload = parse_value(msg.value())
+                    validate(envelope, payload)
+                except (EnvelopeDecodeError, ContractViolationError) as e:
+                    _log.error(
+                        "poison message topic=%s partition=%s offset=%s reason=%s",
+                        msg.topic(), msg.partition(), msg.offset(), e,
+                    )
+                    self._client.commit(message=msg, asynchronous=False)
+                    self._metrics.record_poison(len(msg.value()))
+                    continue
+                # Handler exceptions propagate by design: a buggy handler should
+                # crash loudly rather than silently advance the offset.
+                self._handler(envelope, payload)
+                self._client.commit(message=msg, asynchronous=False)
+                self._metrics.record_processed(len(msg.value()))
+        finally:
+            self._metrics.summary()
+            self._client.close()
