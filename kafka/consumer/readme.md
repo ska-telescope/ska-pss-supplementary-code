@@ -105,6 +105,19 @@ the group. This matches AT4-2179 section 5: increase the partition count
 to scale horizontally; until then, additional instances act as warm
 standbys rather than parallel workers.
 
+## Known limitations
+
+- On persistent broker errors (e.g. the broker is down or unreachable)
+  the poll loop logs a warning roughly once per second without any
+  back-off. This is acceptable for the vertical slice and is tracked as
+  a hardening item; production deployments should expect log noise
+  proportional to the outage duration until back-off is added.
+- `cli.main` is the supported entry point for production use because it
+  installs SIGINT and SIGTERM handlers that drive a clean shutdown.
+  `Consumer.run` is also usable directly (e.g. for embedding in another
+  Python process or for tests), but it does not install signal handlers,
+  so the embedding code must arrange to call `Consumer.stop` itself.
+
 ## Relationship with `tools/consume_compact.py`
 
 `kafka/tools/consume_compact.py` is a compact viewer for demos and
