@@ -90,5 +90,4 @@ def validate(envelope: Mapping[str, Any], payload: bytes) -> None:
     spccl = envelope.get("spccl")
     if not isinstance(spccl, dict):
         raise ContractViolationError("spccl must be a map")
-    # TODO(AT4-2179 open question 8.2): field-level SPCCL validation pending
-    # confirmation of the SPCCL field set with Cheetah / Ben Stappers / Lina.
+    # TODO(AT4-2179): add field-level SPCCL validation once Cheetah/SDP confirm the field set.
