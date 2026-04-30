@@ -5,7 +5,7 @@ import signal
 import sys
 
 from .config import ConsumerConfig, ConfigError
-from .consumer import Consumer, resolve_handler
+from .consumer import Consumer, HandlerError, resolve_handler
 
 
 def _parse_args(argv: list[str] | None) -> argparse.Namespace:
@@ -39,6 +39,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.handler:
         cfg.handler = args.handler
 
+    # Resolve the handler before constructing the consumer / connecting to the
+    # broker so a bad handler spec yields a clean exit-1 path without first
+    # spinning up a librdkafka client.
     try:
         handler = resolve_handler(cfg.handler)
     except (ImportError, AttributeError, ValueError) as e:
@@ -56,9 +59,12 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         consumer.run()
-    except Exception as e:
+    except HandlerError as e:
         log.exception("handler raised an unhandled exception: %s", e)
         return 3
+    except Exception as e:
+        log.exception("consumer terminated with unhandled exception: %s", e)
+        return 2
     return 0
 
 

@@ -3,7 +3,6 @@ from __future__ import annotations
 import importlib
 import logging
 import threading
-from typing import Any
 
 from confluent_kafka import Consumer as KafkaConsumer
 
@@ -13,6 +12,15 @@ from .handlers import Handler
 from .metrics import ThroughputLogger
 
 _log = logging.getLogger(__name__)
+
+
+class HandlerError(Exception):
+    """Raised when the user-supplied handler raises an exception.
+
+    The original exception is attached as ``__cause__`` so the CLI can
+    distinguish handler failures (exit 3) from consumer/client failures
+    (exit 2) without losing the underlying traceback.
+    """
 
 
 def resolve_handler(spec: str) -> Handler:
@@ -62,8 +70,15 @@ class Consumer:
                     self._metrics.record_poison(len(msg.value()))
                     continue
                 # Handler exceptions propagate by design: a buggy handler should
-                # crash loudly rather than silently advance the offset.
-                self._handler(envelope, payload)
+                # crash loudly rather than silently advance the offset. Wrap them
+                # in HandlerError so the CLI can distinguish handler failures
+                # from consumer/client failures via different exit codes.
+                try:
+                    self._handler(envelope, payload)
+                except Exception as e:
+                    raise HandlerError(
+                        f"handler {self._config.handler} raised {type(e).__name__}: {e}"
+                    ) from e
                 self._client.commit(message=msg, asynchronous=False)
                 self._metrics.record_processed(len(msg.value()))
         finally:

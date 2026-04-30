@@ -65,6 +65,7 @@ pss-sdp-consumer [--config <path>] [--group-id <id>] [--topic <name>]
 - `--log-level <LEVEL>`: stdlib logging level. Default `INFO`.
 
 Exit codes: `0` clean shutdown, `1` config or handler-resolution error,
+`2` consumer or client error (e.g. broker connectivity failure),
 `3` unhandled handler exception.
 
 ## Run recipe
