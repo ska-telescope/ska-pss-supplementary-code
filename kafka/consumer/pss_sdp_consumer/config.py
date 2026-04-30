@@ -7,10 +7,6 @@ class ConfigError(ValueError):
     pass
 
 
-# Application-level (bare, non-dotted) keys. Anything else without a dot is rejected.
-_APP_KEYS = {"topic", "handler", "metrics.interval_s"}
-
-
 @dataclass
 class ConsumerConfig:
     topic: str
@@ -39,7 +35,12 @@ class ConsumerConfig:
             elif k == "handler":
                 handler = v
             elif k == "metrics.interval_s":
-                metrics_interval_s = int(v)
+                try:
+                    metrics_interval_s = int(v)
+                except ValueError as e:
+                    raise ConfigError(
+                        f"{path}:{lineno}: metrics.interval_s must be an integer (got {v!r})"
+                    ) from e
             elif "." in k:
                 client_conf[k] = v
             else:
