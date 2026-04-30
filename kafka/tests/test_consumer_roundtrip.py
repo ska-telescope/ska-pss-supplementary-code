@@ -7,7 +7,7 @@ import pytest
 from pss_sdp_consumer.config import ConsumerConfig
 from pss_sdp_consumer.consumer import Consumer
 
-from conftest import _emit_one_valid_message, _wait_for_topic
+from _helpers import _emit_one_valid_message, _wait_for_topic
 
 pytestmark = pytest.mark.integration
 
