@@ -30,6 +30,21 @@ def test_unknown_bare_key_rejected(tmp_path):
         ConsumerConfig.load(p)
 
 
+def test_non_integer_metrics_interval_raises_with_context(tmp_path):
+    p = tmp_path / "consumer.conf"
+    p.write_text(
+        "bootstrap.servers = localhost:9092\n"
+        "topic = t\n"
+        "group.id = g\n"
+        "metrics.interval_s = not-a-number\n"
+    )
+    with pytest.raises(ConfigError) as excinfo:
+        ConsumerConfig.load(p)
+    msg = str(excinfo.value)
+    assert "metrics.interval_s" in msg
+    assert f"{p}:4" in msg
+
+
 def test_dotted_unknown_keys_pass_through(tmp_path):
     p = tmp_path / "consumer.conf"
     p.write_text(
