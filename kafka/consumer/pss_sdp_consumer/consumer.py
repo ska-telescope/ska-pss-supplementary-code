@@ -4,7 +4,7 @@ import importlib
 import logging
 import threading
 
-from confluent_kafka import Consumer as KafkaConsumer
+from confluent_kafka import Consumer as KafkaConsumer, KafkaError
 
 from .config import ConsumerConfig
 from .contract import EnvelopeDecodeError, ContractViolationError, parse_value, validate
@@ -54,6 +54,12 @@ class Consumer:
                 if msg is None:
                     continue
                 if msg.error():
+                    # PARTITION_EOF is an informational event ("we have caught up"),
+                    # not an error; librdkafka only surfaces it when explicitly
+                    # enabled but we still guard against it here so an enabled
+                    # client doesn't spam the log on every quiet poll.
+                    if msg.error().code() == KafkaError._PARTITION_EOF:
+                        continue
                     _log.warning("client error: %s", msg.error())
                     # Batch commits are a future optimisation; manual sync per-message
                     # commit is the simplest correct at-least-once shape for now.
