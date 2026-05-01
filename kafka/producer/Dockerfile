@@ -7,7 +7,7 @@ RUN apt-get update && \
         build-essential cmake pkg-config git ca-certificates \
         librdkafka-dev libmsgpack-dev libssl-dev uuid-dev && \
     rm -rf /var/lib/apt/lists/*
-
+# libmsgpack-dev changes to libmsgpack-cxx-dev for ubuntu 24.04 
 WORKDIR /src
 COPY . /src/kafka
 RUN cmake -S /src/kafka -B /build -DCMAKE_BUILD_TYPE=Release && \
