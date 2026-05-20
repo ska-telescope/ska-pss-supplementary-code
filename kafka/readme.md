@@ -5,6 +5,10 @@ A C++ producer that ships single-pulse-candidate messages per the
 that mirrors the SDP `ska-sdp-testing` Helm chart. Default topic is
 `pss-single-pulse-candidates`.
 
+The companion Python consumer for AT4-2181 lives under
+[`kafka/consumer/`](consumer/readme.md); it validates envelopes against
+the AT4-2179 contract and dispatches to a pluggable handler.
+
 All commands below assume the working directory is the repo root.
 
 ## Prerequisites
