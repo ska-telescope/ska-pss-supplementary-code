@@ -3,7 +3,6 @@ import threading
 import time
 import pytest
 
-from pss_sdp_consumer.config import ConsumerConfig
 from pss_sdp_consumer.consumer import Consumer
 
 from _helpers import _emit_one_valid_message, _wait_for_topic
@@ -11,22 +10,8 @@ from _helpers import _emit_one_valid_message, _wait_for_topic
 pytestmark = pytest.mark.integration
 
 
-def _make_config(bootstrap_servers, topic, group_id):
-    return ConsumerConfig(
-        topic=topic,
-        handler="pss_sdp_consumer.handlers:log_handler",  # overridden below
-        metrics_interval_s=1,
-        client_conf={
-            "bootstrap.servers": bootstrap_servers,
-            "group.id": group_id,
-            "enable.auto.commit": "false",
-            "auto.offset.reset": "earliest",
-        },
-    )
-
-
 def test_committed_offset_survives_restart(
-    bootstrap_servers, unique_topic, unique_group_id
+    bootstrap_servers, unique_topic, unique_group_id, make_consumer_config
 ):
     # Three distinguishable payloads on the same topic.
     expected = []
@@ -50,7 +35,7 @@ def test_committed_offset_survives_restart(
             consumer_1_holder["consumer"].stop()
 
     consumer_1 = Consumer(
-        _make_config(bootstrap_servers, unique_topic, unique_group_id),
+        make_consumer_config(unique_topic, unique_group_id),
         handler=handler_1,
     )
     consumer_1_holder["consumer"] = consumer_1
@@ -74,7 +59,7 @@ def test_committed_offset_survives_restart(
             consumer_2_holder["consumer"].stop()
 
     consumer_2 = Consumer(
-        _make_config(bootstrap_servers, unique_topic, unique_group_id),
+        make_consumer_config(unique_topic, unique_group_id),
         handler=handler_2,
     )
     consumer_2_holder["consumer"] = consumer_2

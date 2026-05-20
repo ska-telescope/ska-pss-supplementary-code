@@ -4,7 +4,6 @@ import time
 import logging
 import pytest
 
-from pss_sdp_consumer.config import ConsumerConfig
 from pss_sdp_consumer.consumer import Consumer
 
 from _helpers import _emit_one_valid_message, _wait_for_topic
@@ -12,7 +11,9 @@ from _helpers import _emit_one_valid_message, _wait_for_topic
 pytestmark = pytest.mark.integration
 
 
-def test_consumes_validates_and_commits(bootstrap_servers, unique_topic, unique_group_id, caplog):
+def test_consumes_validates_and_commits(
+    bootstrap_servers, unique_topic, unique_group_id, make_consumer_config, caplog
+):
     captured = []
 
     def handler(env, payload):
@@ -21,18 +22,7 @@ def test_consumes_validates_and_commits(bootstrap_servers, unique_topic, unique_
     expected_env, expected_payload = _emit_one_valid_message(bootstrap_servers, unique_topic)
     _wait_for_topic(bootstrap_servers, unique_topic)
 
-    cfg = ConsumerConfig(
-        topic=unique_topic,
-        handler="pss_sdp_consumer.handlers:log_handler",  # overridden below
-        metrics_interval_s=1,
-        client_conf={
-            "bootstrap.servers": bootstrap_servers,
-            "group.id": unique_group_id,
-            "enable.auto.commit": "false",
-            "auto.offset.reset": "earliest",
-        },
-    )
-    consumer = Consumer(cfg, handler=handler)
+    consumer = Consumer(make_consumer_config(unique_topic, unique_group_id), handler=handler)
 
     t = threading.Thread(target=consumer.run, daemon=True)
     with caplog.at_level(logging.INFO):
