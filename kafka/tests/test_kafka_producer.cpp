@@ -1,13 +1,41 @@
 #include <gtest/gtest.h>
 #include "KafkaProducerConfig.h"
 #include "SpccInputLoader.h"
+#include <atomic>
+#include <filesystem>
 #include <fstream>
+#include <system_error>
 
 namespace {
-std::string write_temp_config(const std::string& body) {
-    std::string path = "/tmp/kpc_" + std::to_string(::getpid()) + ".conf";
-    std::ofstream(path) << body;
-    return path;
+// RAII handle for a uniquely-named file under temp_directory_path(). The file
+// is removed when the handle goes out of scope, so a failing assertion does
+// not leak the artefact. Each instance gets a fresh name via an atomic
+// counter, so call sites can safely create more than one in the same test.
+struct TempFile {
+    std::filesystem::path path;
+    explicit TempFile(const std::string& suffix = ".tmp") {
+        static std::atomic<unsigned> counter{0};
+        path = std::filesystem::temp_directory_path() /
+               ("kpc_" + std::to_string(::getpid()) + "_" +
+                std::to_string(counter.fetch_add(1)) + suffix);
+    }
+    ~TempFile() {
+        if (!path.empty()) {
+            std::error_code ec;
+            std::filesystem::remove(path, ec);
+        }
+    }
+    TempFile(const TempFile&) = delete;
+    TempFile& operator=(const TempFile&) = delete;
+    TempFile(TempFile&& o) noexcept : path(std::move(o.path)) { o.path.clear(); }
+    TempFile& operator=(TempFile&&) = delete;
+    std::string str() const { return path.string(); }
+};
+
+TempFile write_temp_config(const std::string& body) {
+    TempFile tf(".conf");
+    std::ofstream(tf.path) << body;
+    return tf;
 }
 }
 
@@ -26,7 +54,7 @@ TEST(KafkaProducerConfigTest, ParsesAllRequiredFields) {
         "synthetic.scheduling_block_id  = sbi-x\n"
         "synthetic.beam_id              = beam-1\n"
     );
-    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path.str());
     EXPECT_EQ(cfg.bootstrap_servers, "broker.example:9092");
     EXPECT_EQ(cfg.topic, "my-topic");
     EXPECT_EQ(cfg.producer_id, "node-99");
@@ -53,7 +81,7 @@ TEST(KafkaProducerConfigTest, IgnoresUnknownKeysAndComments) {
         "producer_id=p\n"
         "unknown.key=ignored\n"
     );
-    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path.str());
     EXPECT_EQ(cfg.bootstrap_servers, "localhost:9092");
 }
 
@@ -63,19 +91,19 @@ TEST(KafkaProducerConfigTest, AcceptsInlineCommentAfterValue) {
         "bootstrap.servers = localhost:9092\n"
         "producer_id = p\n"
     );
-    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path.str());
     EXPECT_EQ(cfg.topic, "real-topic");
 }
 
 TEST(KafkaProducerConfigTest, AcceptsEmptyStringValue) {
     auto path = write_temp_config("topic =\nbootstrap.servers = localhost:9092\n");
-    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path.str());
     EXPECT_EQ(cfg.topic, "");
 }
 
 TEST(KafkaProducerConfigTest, IgnoresBlankLines) {
     auto path = write_temp_config("\n\ntopic = t\n\n   \nbootstrap.servers = b:1\n");
-    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path.str());
     EXPECT_EQ(cfg.topic, "t");
     EXPECT_EQ(cfg.bootstrap_servers, "b:1");
 }
@@ -83,7 +111,7 @@ TEST(KafkaProducerConfigTest, IgnoresBlankLines) {
 TEST(KafkaProducerConfigTest, ToleratesCrlfLineEndings) {
     auto path = write_temp_config(
         "topic = crlf-topic\r\nbootstrap.servers = host:9092\r\n");
-    KafkaProducerConfig cfg = KafkaProducerConfig::load(path);
+    KafkaProducerConfig cfg = KafkaProducerConfig::load(path.str());
     EXPECT_EQ(cfg.topic, "crlf-topic");
     EXPECT_EQ(cfg.bootstrap_servers, "host:9092");
 }
@@ -92,7 +120,7 @@ TEST(KafkaProducerConfigTest, ThrowsOnMalformedInteger) {
     auto path = write_temp_config(
         "bootstrap.servers = b:1\ntopic = t\nproducer_id = p\nretries = not-a-number\n");
     try {
-        KafkaProducerConfig::load(path);
+        KafkaProducerConfig::load(path.str());
         FAIL() << "expected std::runtime_error to be thrown";
     } catch (const std::runtime_error& e) {
         const std::string msg = e.what();
@@ -252,13 +280,13 @@ ConsumerHandle make_consumer(const std::string& brokers,
 }  // namespace
 
 TEST(SpccInputLoaderTest, LoadsRawPayloadBytes) {
-    std::string path = "/tmp/kpc_payload_" + std::to_string(::getpid()) + ".bin";
+    TempFile path(".bin");
     {
-        std::ofstream f(path, std::ios::binary);
+        std::ofstream f(path.path, std::ios::binary);
         const char bytes[] = {0x01, 0x02, 0x03, 0x04, 0x05};
         f.write(bytes, sizeof bytes);
     }
-    auto v = load_payload_bytes(path);
+    auto v = load_payload_bytes(path.str());
     ASSERT_EQ(v.size(), 5u);
     EXPECT_EQ(v[0], 0x01);
     EXPECT_EQ(v[4], 0x05);
@@ -269,7 +297,7 @@ TEST(SpccInputLoaderTest, ThrowsOnMissingPayloadFile) {
 }
 
 TEST(SpccInputLoaderTest, LoadsAllMetaFields) {
-    std::string path = "/tmp/kpc_meta_" + std::to_string(::getpid()) + ".msgpack";
+    TempFile path(".msgpack");
     msgpack::sbuffer buf;
     msgpack::packer<msgpack::sbuffer> p(buf);
     p.pack_map(6);
@@ -279,9 +307,9 @@ TEST(SpccInputLoaderTest, LoadsAllMetaFields) {
     p.pack(std::string("dm"));                  p.pack(float(77.5f));
     p.pack(std::string("width"));               p.pack(float(0.004f));
     p.pack(std::string("snr"));                 p.pack(float(14.2f));
-    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
+    std::ofstream(path.path, std::ios::binary).write(buf.data(), buf.size());
 
-    SpcclOverrides o = load_spccl_meta(path);
+    SpcclOverrides o = load_spccl_meta(path.str());
     EXPECT_TRUE(o.has_scheduling_block_id); EXPECT_EQ(o.scheduling_block_id, "sbi-real");
     EXPECT_TRUE(o.has_beam_id);             EXPECT_EQ(o.beam_id, "beam-42");
     EXPECT_TRUE(o.has_mjd);                 EXPECT_DOUBLE_EQ(o.mjd, 60123.25);
@@ -291,14 +319,14 @@ TEST(SpccInputLoaderTest, LoadsAllMetaFields) {
 }
 
 TEST(SpccInputLoaderTest, LeavesUnsetFieldsUnflagged) {
-    std::string path = "/tmp/kpc_meta_partial_" + std::to_string(::getpid()) + ".msgpack";
+    TempFile path(".msgpack");
     msgpack::sbuffer buf;
     msgpack::packer<msgpack::sbuffer> p(buf);
     p.pack_map(1);
     p.pack(std::string("dm")); p.pack(float(99.0f));
-    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
+    std::ofstream(path.path, std::ios::binary).write(buf.data(), buf.size());
 
-    SpcclOverrides o = load_spccl_meta(path);
+    SpcclOverrides o = load_spccl_meta(path.str());
     EXPECT_FALSE(o.has_scheduling_block_id);
     EXPECT_FALSE(o.has_beam_id);
     EXPECT_FALSE(o.has_mjd);
@@ -308,45 +336,45 @@ TEST(SpccInputLoaderTest, LeavesUnsetFieldsUnflagged) {
 }
 
 TEST(SpccInputLoaderTest, ThrowsOnNonMapMeta) {
-    std::string path = "/tmp/kpc_meta_bad_" + std::to_string(::getpid()) + ".msgpack";
+    TempFile path(".msgpack");
     msgpack::sbuffer buf;
     msgpack::packer<msgpack::sbuffer> p(buf);
     p.pack(std::string("not-a-map"));
-    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
-    EXPECT_THROW(load_spccl_meta(path), std::runtime_error);
+    std::ofstream(path.path, std::ios::binary).write(buf.data(), buf.size());
+    EXPECT_THROW(load_spccl_meta(path.str()), std::runtime_error);
 }
 
 TEST(SpccInputLoaderTest, ThrowsOnWrongFieldType) {
-    std::string path = "/tmp/kpc_meta_wrongtype_" + std::to_string(::getpid()) + ".msgpack";
+    TempFile path(".msgpack");
     msgpack::sbuffer buf;
     msgpack::packer<msgpack::sbuffer> p(buf);
     p.pack_map(1);
     p.pack(std::string("mjd")); p.pack(std::string("not-a-number"));
-    std::ofstream(path, std::ios::binary).write(buf.data(), buf.size());
+    std::ofstream(path.path, std::ios::binary).write(buf.data(), buf.size());
 
     try {
-        load_spccl_meta(path);
+        load_spccl_meta(path.str());
         FAIL() << "expected std::runtime_error";
     } catch (const std::runtime_error& e) {
         std::string msg = e.what();
-        EXPECT_NE(msg.find("mjd"),  std::string::npos) << msg;
-        EXPECT_NE(msg.find(path),   std::string::npos) << msg;
+        EXPECT_NE(msg.find("mjd"),    std::string::npos) << msg;
+        EXPECT_NE(msg.find(path.str()), std::string::npos) << msg;
     }
 }
 
 TEST(SpccInputLoaderTest, ThrowsOnMalformedMsgpack) {
-    std::string path = "/tmp/kpc_meta_garbage_" + std::to_string(::getpid()) + ".msgpack";
+    TempFile path(".msgpack");
     {
-        std::ofstream f(path, std::ios::binary);
+        std::ofstream f(path.path, std::ios::binary);
         const char junk[] = {(char)0xFE, (char)0xFE, (char)0xFE, (char)0xFE, (char)0xFE};
         f.write(junk, sizeof junk);
     }
     try {
-        load_spccl_meta(path);
+        load_spccl_meta(path.str());
         FAIL() << "expected std::runtime_error";
     } catch (const std::runtime_error& e) {
         std::string msg = e.what();
-        EXPECT_NE(msg.find(path), std::string::npos) << msg;
+        EXPECT_NE(msg.find(path.str()), std::string::npos) << msg;
     }
 }
 
