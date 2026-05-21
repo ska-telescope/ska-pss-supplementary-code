@@ -57,15 +57,26 @@ echo "[e2e] starting consumer in background"
 consumer_pid=$!
 trap 'kill ${consumer_pid} 2>/dev/null || true; wait ${consumer_pid} 2>/dev/null || true; rm -rf "${work}"' EXIT
 
-# Wait for the consumer to join the group before we publish.
+# Best-effort wait for the consumer to join the group before we publish, so
+# the delivery-wall timing reflects a warm consumer rather than group-join
+# overhead. Correctness does not depend on this: auto.offset.reset=earliest
+# ensures the message is picked up whenever the consumer joins, and the
+# "received message_id=" check below is the real PASS/FAIL gate. If none of
+# the readiness strings appear (e.g. the log format has drifted), we warn
+# and proceed rather than fail.
+ready=0
 for i in $(seq 1 30); do
     if grep -q "Consumer ready" "${consumer_log}" 2>/dev/null \
        || grep -q "subscribed" "${consumer_log}" 2>/dev/null \
        || grep -q "assigned" "${consumer_log}" 2>/dev/null; then
+        ready=1
         break
     fi
     sleep 0.2
 done
+if [[ ${ready} -eq 0 ]]; then
+    echo "[e2e] warning: no readiness marker in consumer log after 6s; proceeding anyway"
+fi
 
 t_start_ns=$(date +%s%N)
 echo "[e2e] producing 1 message"
