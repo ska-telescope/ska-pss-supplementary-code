@@ -99,3 +99,26 @@ docker image ls | grep demo
 
 cheetah-demo 0.1 df7fef990bb1   About a minute ago   183MB
 ```
+
+## Step 2 - deploy charts
+
+```bash
+kubectl create namespace low-pss
+helm install cheetah-demo ./charts/cheetah --namespace low-pss
+
+NAME: cheetah-demo
+LAST DEPLOYED: Tue Jun  9 10:56:42 2026
+NAMESPACE: low-pss
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+```
+
+This has launched a container into the low-pss namespace which is running cheetah with a default configuration file. The file, and other default CLI options are specified in the charts/cheetah/values.yaml. 
+
+```bash
+kubectl get pods -n low-pss
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+cheetah-demo-cheetah-7894f757dc-j525h   1/1     Running   0          20s
+```
