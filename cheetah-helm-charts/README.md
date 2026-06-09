@@ -97,5 +97,5 @@ docker build --network=host -t cheetah-demo:0.1 .
 minikube image load cheetah-demo:0.1 
 docker image ls | grep demo
 
-cheetah-demo                                                            0.1                     df7fef990bb1   About a minute ago   183MB
+cheetah-demo 0.1 df7fef990bb1   About a minute ago   183MB
 ```
