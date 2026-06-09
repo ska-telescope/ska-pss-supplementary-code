@@ -44,9 +44,46 @@ Similarly, if PSS is not required and the node can be used for other purposes, t
 
 The cheetah CLI options could be supplied to the deployment via a `ConfigMap`. This keeps deployment-time configuration, such as the initial XML path, data source, etc, separate from the container image. 
 
-One subtlety is that changing a `ConfigMap` does not automatically restart pods that consume it through environment variables. These are read when the container starts so an already running cheetah pod will continue using only values until the pod is restarted. To handle this cleanly, the deployment template could include a checksum annotation based on the rendered `ConfigMap`. 
+One subtlety is that changing a `ConfigMap` does not automatically restart pods that consume it through environment variables. These are read when the container starts so an already running cheetah pod will continue using the old values until the pod is restarted. To handle this cleanly, the deployment template could include a checksum annotation based on the rendered `ConfigMap`. 
 
 When the helm values change (using a `helm upgrade`) the checksum will change too. Because this annotation is part of the pod template, Kubernetes sees the deployment as changed and performs a normal rolling update. This gives a reliable way to trigger a cheetah restart when process-level options change, without manually deleting pods or redeploying the whole chart. 
 
+# Example
 
+In this example, I used deployed the SKA CICD environment on `dokimi` (PSS development server - runs Ubuntu 22 LTS)
+
+```bash
+cd ska-cicd-deploy-minikube
+make all DRIVER=docker MEM=16384 CPUS=16
+kubectl get pods -A
+
+NAMESPACE            NAME                                            READY   STATUS    RESTARTS   AGE
+cert-manager         cert-manager-848cd5ff9f-pmbrb                   1/1     Running   0          4m37s
+cert-manager         cert-manager-cainjector-9f76b67db-nbvh5         1/1     Running   0          4m37s
+cert-manager         cert-manager-webhook-7699796787-7z8jc           1/1     Running   0          4m37s
+extdns               extdns-coredns-66658d8d8c-tjnpx                 1/1     Running   0          59s
+haproxy-controller   haproxy-kubernetes-ingress-79845df6bb-pbrml     1/1     Running   0          83s
+haproxy-controller   haproxy-kubernetes-ingress-79845df6bb-s986p     1/1     Running   0          83s
+ingress-nginx        ingress-nginx-controller-56f47c86d-9svzv        1/1     Running   0          2m
+kube-system          cilium-8b7vj                                    1/1     Running   0          4m40s
+kube-system          cilium-envoy-dfbmd                              1/1     Running   0          4m40s
+kube-system          cilium-operator-d4558f9cf-g9c46                 1/1     Running   0          3m22s
+kube-system          coredns-68648c7bf8-lfcx4                        1/1     Running   0          64s
+kube-system          csi-hostpath-attacher-0                         1/1     Running   0          3m16s
+kube-system          csi-hostpath-resizer-0                          1/1     Running   0          3m16s
+kube-system          csi-hostpathplugin-2dbg5                        6/6     Running   0          3m16s
+kube-system          etcd-minikube                                   1/1     Running   0          4m51s
+kube-system          hubble-relay-56f7c65878-fsmkv                   1/1     Running   0          4m40s
+kube-system          hubble-ui-67d8bff4c4-2g526                      2/2     Running   0          4m40s
+kube-system          kube-apiserver-minikube                         1/1     Running   0          4m51s
+kube-system          kube-controller-manager-minikube                1/1     Running   0          4m51s
+kube-system          kube-scheduler-minikube                         1/1     Running   0          4m51s
+kube-system          metrics-server-9d74bb658-9b7gd                  1/1     Running   0          3m18s
+kube-system          snapshot-controller-6588d87457-hrn26            1/1     Running   0          2m52s
+kube-system          snapshot-controller-6588d87457-mzhqv            1/1     Running   0          2m52s
+kube-system          storage-provisioner                             1/1     Running   0          4m50s
+metallb-system       controller-66bdd896c6-tcwxg                     1/1     Running   0          2m46s
+metallb-system       speaker-xn2dr                                   1/1     Running   0          2m46s
+nginx-ingress-oss    nginx-ingress-oss-controller-756f576df8-dmzfn   1/1     Running   0          85s
+```
 
