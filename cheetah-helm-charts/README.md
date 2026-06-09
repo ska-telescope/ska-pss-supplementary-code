@@ -142,7 +142,7 @@ ps -ef | grep cheetah
 /usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-sps-sigproc_out.xml -p SinglePulse -s udp_low_lite --log-level=control
 ```
 
-# Change cheetah process level configuration
+## Change cheetah process level configuration
 
 We may wish to change the data source, which can be done with a helm upgrade. To switch from the default `udp_low_lite` to `udp_low` we can run 
 
@@ -198,5 +198,48 @@ ps -ef | grep cheetah
 /usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-empty-sigproc_out.xml -p Empty -s udp_low_lite --log-level=control
 ```
 
+## Stopping cheetah when required
 
+To free up processes used by cheetah when idle, for example if the nodes are to be used for non-PSS purposes, we can scale back the number of replicas to zero whilst remaining deployed. 
 
+```bash
+helm upgrade cheetah-demo ./charts/cheetah --set replicaCount=0 --namespace low-pss
+
+Release "cheetah-demo" has been upgraded. Happy Helming!
+NAME: cheetah-demo
+LAST DEPLOYED: Tue Jun  9 11:49:21 2026
+NAMESPACE: low-pss
+STATUS: deployed
+REVISION: 4
+TEST SUITE: None
+```
+
+which should mean there are no cheetah pods alive in the low-pss namespace
+
+```bash
+kubectl get pods -n low-pss
+
+No resources found in low-pss namespace
+```
+
+Then to bring cheetah back online ready we can scale back up to 1 replica. 
+
+```bash
+helm upgrade cheetah-demo ./charts/cheetah --set replicaCount=1 --namespace low-pss
+
+Release "cheetah-demo" has been upgraded. Happy Helming!
+NAME: cheetah-demo
+LAST DEPLOYED: Tue Jun  9 11:51:02 2026
+NAMESPACE: low-pss
+STATUS: deployed
+REVISION: 5
+TEST SUITE: None
+```
+To confirm...
+
+```bash
+kubectl get pods -n low-pss
+
+NAME                                    READY   STATUS    RESTARTS   AGE
+cheetah-demo-cheetah-7894f757dc-dsm2m   1/1     Running   0          40s
+```
