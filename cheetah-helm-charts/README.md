@@ -50,7 +50,7 @@ When the helm values change (using a `helm upgrade`) the checksum will change to
 
 # Example
 
-In this example, I used deployed the SKA CICD environment on `dokimi` (PSS development server - runs Ubuntu 22 LTS)
+In this example, I deployed the SKA CICD environment on `dokimi` (PSS development server - runs Ubuntu 22 LTS)
 
 ```bash
 cd ska-cicd-deploy-minikube
@@ -87,3 +87,15 @@ metallb-system       speaker-xn2dr                                   1/1     Run
 nginx-ingress-oss    nginx-ingress-oss-controller-756f576df8-dmzfn   1/1     Running   0          85s
 ```
 
+## Step 1 - build container image
+
+This is represented in the example Dockerfile. As this is just an exmple, I don't apt install the deb archive for cheetah, instead I copied in a `cheetah_pipeline` binary from a previous build. I also copy in some example default config files to /etc/cheetah/configs. No ssh is installed or started in this example and the `ENTRYPOINT` is set to be the `cheetah_pipeline` executable path. 
+
+```bash
+cd ska-pss-supplmentary-code/cheetah_helm_charts
+docker build --network=host -t cheetah-demo:0.1 .
+minikube image load cheetah-demo:0.1 
+docker image ls | grep demo
+
+cheetah-demo                                                            0.1                     df7fef990bb1   About a minute ago   183MB
+```
