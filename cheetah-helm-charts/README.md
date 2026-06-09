@@ -87,7 +87,7 @@ metallb-system       speaker-xn2dr                                   1/1     Run
 nginx-ingress-oss    nginx-ingress-oss-controller-756f576df8-dmzfn   1/1     Running   0          85s
 ```
 
-## Step 1 - build container image
+## Build container image
 
 This is represented in the example Dockerfile. As this is just an exmple, I don't apt install the deb archive for cheetah, instead I copied in a `cheetah_pipeline` binary from a previous build. I also copy in some example default config files to /etc/cheetah/configs. No ssh is installed or started in this example and the `ENTRYPOINT` is set to be the `cheetah_pipeline` executable path. 
 
@@ -100,7 +100,7 @@ docker image ls | grep demo
 cheetah-demo 0.1 df7fef990bb1   About a minute ago   183MB
 ```
 
-## Step 2 - deploy charts
+## Deploy charts
 
 ```bash
 kubectl create namespace low-pss
@@ -122,3 +122,81 @@ kubectl get pods -n low-pss
 NAME                                    READY   STATUS    RESTARTS   AGE
 cheetah-demo-cheetah-7894f757dc-j525h   1/1     Running   0          20s
 ```
+
+These values are currently set to be as follows
+
+```bash
+cheetah:
+  config: /etc/cheetah/configs/default-sps-sigproc_out.xml
+  pipeline: SinglePulse
+  source: udp_low_lite
+  loglevel: control
+```
+
+which if we log into the pod and run ps, cheetah should be running with these arguments
+
+```bash
+kubectl exec -it cheetah-demo-cheetah-7894f757dc-j525h -n low-pss -- /bin/bash
+ps -ef | grep cheetah
+
+/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-sps-sigproc_out.xml -p SinglePulse -s udp_low_lite --log-level=control
+```
+
+# Change cheetah process level configuration
+
+We may wish to change the data source, which can be done with a helm upgrade. To switch from the default `udp_low_lite` to `udp_low` we can run 
+
+```bash
+helm upgrade cheetah-demo ./charts/cheetah --set cheetah.source=udp_low --namespace low-pss
+
+Release "cheetah-demo" has been upgraded. Happy Helming!
+NAME: cheetah-demo
+LAST DEPLOYED: Tue Jun  9 11:29:40 2026
+NAMESPACE: low-pss
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+
+```
+
+Inspecting the pods in the low-pss namespace shows the original cheetah pod shutting down and new pod, listening for the new data source, has been instantiated. 
+
+```bash
+NAME                                    READY   STATUS        RES
+TARTS   AGE
+cheetah-demo-cheetah-5488b48474-7w57w   1/1     Running       0
+        18s
+cheetah-demo-cheetah-7894f757dc-j525h   1/1     Terminating   0
+        33m
+```
+
+..and if we log into that as before and run `ps`, we can see the new cheetah running
+
+```bash
+ps -ef | grep cheetah
+
+/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-sps-sigproc_out.xml -p SinglePulse -s udp_low --log-level=control
+```
+
+Similarly, we can change the default configuration file that is read. We may wish to switch from SinglePulse to an Empty pipeline type. 
+
+```bash
+helm upgrade cheetah-demo ./charts/cheetah --set cheetah.config=/etc/cheetah/configs/default-empty-sigproc_out.xml --set cheetah.pipeline=Empty --namespace low-pss
+
+Release "cheetah-demo" has been upgraded. Happy Helming!
+NAME: cheetah-demo
+LAST DEPLOYED: Tue Jun  9 11:36:46 2026
+NAMESPACE: low-pss
+STATUS: deployed
+REVISION: 3
+TEST SUITE: None
+```
+
+```bash
+ps -ef | grep cheetah
+
+/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-empty-sigproc_out.xml -p Empty -s udp_low_lite --log-level=control
+```
+
+
+
