@@ -6,7 +6,7 @@ image:
 replicaCount: 1
 
 cheetah:
-  config: /etc/cheetah/configs/deployment/default-sps-sigproc_out.xml
+  config: /etc/cheetah/configs/default-sps-sigproc_out.xml
   pipeline: SinglePulse
   source: udp_low_lite
   loglevel: control
