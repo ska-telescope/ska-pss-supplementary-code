@@ -57,6 +57,11 @@
             <ip_address>127.0.0.1</ip_address>
           </listen>
         </udp_mid>
+        <sigproc>
+          <file>/tmp/example1.fil</file>
+          <chunk_samples>1024</chunk_samples>
+          <default-nbits>8</default-nbits> 
+        </sigproc>
       </source>
     </beam>
     <beam>
@@ -116,6 +121,11 @@
             <ip_address>127.0.0.1</ip_address>
           </listen>
         </udp_mid>
+        <sigproc>
+          <file>/tmp/example1.fil</file>
+          <chunk_samples>1024</chunk_samples>
+          <default-nbits>8</default-nbits> 
+        </sigproc>
       </source>
     </beam>
     <beam>
@@ -175,6 +185,11 @@
             <ip_address>127.0.0.1</ip_address>
           </listen>
         </udp_mid>
+        <sigproc>
+          <file>/tmp/example1.fil</file>
+          <chunk_samples>1024</chunk_samples>
+          <default-nbits>8</default-nbits> 
+        </sigproc>
       </source>
     </beam>
   </beams>

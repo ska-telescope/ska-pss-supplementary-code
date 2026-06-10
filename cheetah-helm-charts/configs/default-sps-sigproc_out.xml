@@ -69,6 +69,11 @@
             <ip_address>127.0.0.1</ip_address>
           </listen>
         </udp_mid>
+        <sigproc>
+          <file>/tmp/example1.fil</file>
+          <chunk_samples>1024</chunk_samples>
+          <default-nbits>8</default-nbits> 
+        </sigproc>
       </source>
     </beam>
     <beam>
@@ -140,6 +145,11 @@
             <ip_address>127.0.0.1</ip_address>
           </listen>
         </udp_mid>
+        <sigproc>
+          <file>/tmp/example1.fil</file>
+          <chunk_samples>1024</chunk_samples>
+          <default-nbits>8</default-nbits> 
+        </sigproc>
       </source>
     </beam>
     <beam>
@@ -211,6 +221,11 @@
             <ip_address>127.0.0.1</ip_address>
           </listen>
         </udp_mid>
+        <sigproc>
+          <file>/tmp/example1.fil</file>
+          <chunk_samples>1024</chunk_samples>
+          <default-nbits>8</default-nbits> 
+        </sigproc>
       </source>
     </beam>
   </beams>
@@ -322,31 +337,15 @@
   <psbc>
     <dump_time>540</dump_time>
   </psbc>
-  <sps>
+  <spdt>
     <pool-id>default</pool-id>
     <priority>0</priority>
     <threshold>6.0</threshold>
-    <astroaccelerate>
-      <active>false</active>
-    </astroaccelerate>
-    <klotski_bruteforce>
-      <active>false</active>
-      <widths>1,2,4,8,16,32,63,128,250,500,1000,2000,4000,8000,16004</widths>
-    </klotski_bruteforce>
     <klotski>
       <active>true</active>
       <widths>1,2,4,8,16,32,63,128,250,500,1000,2000,4000,8000,16004</widths>
     </klotski>
-    <cpu>
-      <active>false</active>
-      <samples_per_iteration>1024</samples_per_iteration>
-      <number_of_widths>10</number_of_widths>
-    </cpu>
-    <emulator>
-      <candidate_rate>1.0</candidate_rate>
-      <active>false</active>
-    </emulator>
-  </sps>
+  </spdt>
   <sps_clustering>
     <pool-id>default</pool-id>
     <priority>0</priority>
@@ -354,10 +353,10 @@
     <fof_clustering>
       <active>false</active>
       <number_of_threads>1</number_of_threads>
-      <time_tolerance>100</time_tolerance>
-      <dm_thresh>100</dm_thresh>
-      <pulse_width_tolerance>5</pulse_width_tolerance>
-      <linking_length>1.73</linking_length>
+      <time_tolerance>10</time_tolerance>
+      <dm_thresh>10</dm_thresh>
+      <width_matching_factor>4.0</width_matching_factor>
+      <linking_length>1.5</linking_length>
     </fof_clustering>
     <hdbscan_clustering>
       <active>false</active>
