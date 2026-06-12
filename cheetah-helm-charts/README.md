@@ -33,7 +33,7 @@ These are currently handled by helm values but changing them post-deployment wou
 
 ```yaml
 cheetah:
-  config: /etc/cheetah/configs/default-sps-sigproc_out.xml
+  config: /etc/cheetah/startup/default-sps-sigproc_out.xml
   pipeline: SinglePulse
   source: udp_low_lite
   loglevel: control
@@ -89,7 +89,7 @@ nginx-ingress-oss    nginx-ingress-oss-controller-756f576df8-dmzfn   1/1     Run
 
 ## Build container image
 
-This is represented in the example Dockerfile. As this is just an exmple, I don't apt install the deb archive for cheetah, instead I copied in a `cheetah_pipeline` binary from a previous build. I also copy in some example default config files to /etc/cheetah/configs. No ssh is installed or started in this example and the `ENTRYPOINT` is set to be the `cheetah_pipeline` executable path. 
+This is represented in the example Dockerfile. No ssh is installed or started in this example and the `ENTRYPOINT` is set to be the `cheetah_pipeline` executable path. 
 
 ```bash
 cd ska-pss-supplmentary-code/cheetah_helm_charts
@@ -127,7 +127,7 @@ These values are currently set to be as follows
 
 ```bash
 cheetah:
-  config: /etc/cheetah/configs/default-sps-sigproc_out.xml
+  config: /etc/cheetah/startup/default-sps-sigproc_out.xml
   pipeline: SinglePulse
   source: udp_low_lite
   loglevel: control
@@ -139,7 +139,7 @@ which if we log into the pod and run ps, cheetah should be running with these ar
 kubectl exec -it cheetah-demo-cheetah-7894f757dc-j525h -n low-pss -- /bin/bash
 ps -ef | grep cheetah
 
-/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-sps-sigproc_out.xml -p SinglePulse -s udp_low_lite --log-level=control
+/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/startup/default-sps-sigproc_out.xml -p SinglePulse -s udp_low_lite --log-level=control
 ```
 
 ## Change cheetah process level configuration
@@ -175,13 +175,13 @@ cheetah-demo-cheetah-7894f757dc-j525h   1/1     Terminating   0
 ```bash
 ps -ef | grep cheetah
 
-/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-sps-sigproc_out.xml -p SinglePulse -s udp_low --log-level=control
+/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/startup/default-sps-sigproc_out.xml -p SinglePulse -s udp_low --log-level=control
 ```
 
 Similarly, we can change the default configuration file that is read. We may wish to switch from SinglePulse to an Empty pipeline type. 
 
 ```bash
-helm upgrade cheetah-demo ./charts/cheetah --set cheetah.config=/etc/cheetah/configs/default-empty-sigproc_out.xml --set cheetah.pipeline=Empty --namespace low-pss
+helm upgrade cheetah-demo ./charts/cheetah --set cheetah.config=/etc/cheetah/startup/default-empty-sigproc_out.xml --set cheetah.pipeline=Empty --namespace low-pss
 
 Release "cheetah-demo" has been upgraded. Happy Helming!
 NAME: cheetah-demo
@@ -195,7 +195,7 @@ TEST SUITE: None
 ```bash
 ps -ef | grep cheetah
 
-/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/configs/default-empty-sigproc_out.xml -p Empty -s udp_low_lite --log-level=control
+/usr/local/bin/cheetah_pipeline --config=/etc/cheetah/startup/default-empty-sigproc_out.xml -p Empty -s udp_low_lite --log-level=control
 ```
 
 ## Stopping cheetah when required
