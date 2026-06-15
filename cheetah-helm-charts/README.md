@@ -13,7 +13,7 @@ This introduces avoidable statefulness into PSS.LMC. In particular, PSS.LMC must
 
 ## Suggested behaviour
 
-Instead, `cheetah_pipeline` could be started at deployment time, using a minimal default configuration, whose only purpose is to allow the process to initialise and expose its control interface. Once cheetah is running, every call to `Configure()` would send a complete scan configuration via gRPC. 
+Instead, `cheetah_pipeline` could be started at deployment time, using a minimal default configuration, whose only purpose is to allow the process to initialise and expose its control interface. Once cheetah is running, every call to `Configure()` would send a either a complete scan configuration (depending on latency/bandwidth) or the changes with respect to the default/previous scan configuration, via gRPC. 
 
 This removes the need for `Configure()` to distinguish between "first scan" and "subsequent scan". The first scan is configured in the same way as all other scans. 
 
