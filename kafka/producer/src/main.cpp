@@ -108,7 +108,8 @@ void print_block(int index_1based, int total,
       << "  timestamp_utc     : " << format_iso8601(enc.timestamp_utc_ms) << "\n"
       << "  scheduling_block  : " << msg.spccl.scheduling_block_id << "\n"
       << "  beam_id           : " << msg.spccl.beam_id << "\n"
-      << "  mjd               : " << msg.spccl.mjd << "\n"
+      << "  mjd               : " << std::setprecision(15) << msg.spccl.mjd
+                                  << std::setprecision(6) << "\n"
       << "  dm                : " << msg.spccl.dm << "\n"
       << "  width             : " << msg.spccl.width << "\n"
       << "  snr               : " << msg.spccl.snr << "\n"
