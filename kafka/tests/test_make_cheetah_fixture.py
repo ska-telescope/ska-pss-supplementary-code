@@ -1,3 +1,7 @@
+import os
+import subprocess
+import sys
+
 import msgpack
 import pytest
 
@@ -84,3 +88,32 @@ def test_write_meta_omits_sbi_and_beam(tmp_path):
     out = msgpack.unpackb(path.read_bytes(), raw=False)
     assert "scheduling_block_id" not in out
     assert "beam_id" not in out
+
+
+@pytest.mark.unit
+def test_cli_end_to_end_writes_payload_and_meta(tmp_path):
+    spccl = _write_spccl(tmp_path)
+    fil = tmp_path / "candidate.fil"
+    fil_bytes = os.urandom(4096)
+    fil.write_bytes(fil_bytes)
+
+    payload_out = tmp_path / "payload.bin"
+    meta_out    = tmp_path / "meta.msgpack"
+
+    repo_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+    cmd = [
+        sys.executable, "-m", "kafka.tools.make_cheetah_fixture",
+        "--spccl",       str(spccl),
+        "--fil",         str(fil),
+        "--payload-out", str(payload_out),
+        "--meta-out",    str(meta_out),
+        "--row",         "1",
+    ]
+    subprocess.run(cmd, cwd=repo_root, check=True)
+
+    assert payload_out.read_bytes() == fil_bytes
+    meta = msgpack.unpackb(meta_out.read_bytes(), raw=False)
+    assert meta["mjd"] == 56000.0000617659
+    assert meta["dm"]  == pytest.approx(368.8, rel=1e-5)
+    assert meta["snr"] == pytest.approx(15.75, rel=1e-5)
+    assert "scheduling_block_id" not in meta
