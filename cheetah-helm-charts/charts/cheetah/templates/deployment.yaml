@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}-cheetah
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}-cheetah
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}-cheetah
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/configmap.yaml") . | sha256sum }}
+    spec:
+      containers:
+        - name: cheetah
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: CHEETAH_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-cheetah-config
+                  key: CHEETAH_CONFIG
+            - name: CHEETAH_PIPELINE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-cheetah-config
+                  key: CHEETAH_PIPELINE
+            - name: CHEETAH_SOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-cheetah-config
+                  key: CHEETAH_SOURCE
+            - name: CHEETAH_LOGLEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ .Release.Name }}-cheetah-config
+                  key: CHEETAH_LOGLEVEL
+          args:
+            - "--config=$(CHEETAH_CONFIG)"
+            - "-p"
+            - "$(CHEETAH_PIPELINE)"
+            - "-s"
+            - "$(CHEETAH_SOURCE)"
+            - "--log-level=$(CHEETAH_LOGLEVEL)"

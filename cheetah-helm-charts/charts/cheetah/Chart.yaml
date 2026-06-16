@@ -1,0 +1,6 @@
+apiVersion: 2
+name: cheetah
+description: Cheetah daemon dem
+type: application
+version: 0.1.0
+appVersion: "0.1"
