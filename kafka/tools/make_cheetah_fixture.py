@@ -7,7 +7,13 @@ for the full design.
 """
 from __future__ import annotations
 
+import struct
+
+import msgpack
+
 SPCCL_HEADER = "MJD(decimal days)\tdm(dimensionless)\twidth(ms)\tsigma\tlabel"
+
+_F32_KEYS = ("dm", "width", "snr")
 
 
 def parse_spccl_row(path: str, row: int = 0) -> dict:
@@ -32,3 +38,30 @@ def parse_spccl_row(path: str, row: int = 0) -> dict:
         "width": float(cols[2]),
         "snr":   float(cols[3]),
     }
+
+
+def _float32(x: float) -> float:
+    """Round-trip through a 4-byte IEEE-754 float so msgpack picks FLOAT32."""
+    return struct.unpack("<f", struct.pack("<f", x))[0]
+
+
+def write_meta(path: str, meta: dict) -> None:
+    """Write the SPCCL overrides map to *path* as msgpack.
+
+    `dm`, `width`, `snr` are packed as float32 (matches
+    SpcclOverrides::as<float>() on the C++ side). `mjd` is packed as
+    float64. Keys absent from *meta* are simply not packed -- the
+    producer falls back to its synthetic config defaults.
+    """
+    buf = bytearray()
+    p_f32 = msgpack.Packer(use_single_float=True,  use_bin_type=True)
+    p_f64 = msgpack.Packer(use_single_float=False, use_bin_type=True)
+    buf += p_f64.pack_map_header(len(meta))
+    for k, v in meta.items():
+        buf += p_f64.pack(k)
+        if k in _F32_KEYS:
+            buf += p_f32.pack(_float32(v))
+        else:
+            buf += p_f64.pack(v)
+    with open(path, "wb") as f:
+        f.write(bytes(buf))
