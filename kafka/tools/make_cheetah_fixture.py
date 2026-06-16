@@ -7,7 +7,10 @@ for the full design.
 """
 from __future__ import annotations
 
+import argparse
+import shutil
 import struct
+import sys
 
 import msgpack
 
@@ -65,3 +68,29 @@ def write_meta(path: str, meta: dict) -> None:
             buf += p_f64.pack(v)
     with open(path, "wb") as f:
         f.write(bytes(buf))
+
+
+def copy_payload(src: str, dst: str) -> None:
+    with open(src, "rb") as r, open(dst, "wb") as w:
+        shutil.copyfileobj(r, w)
+
+
+def main(argv: list[str] | None = None) -> int:
+    ap = argparse.ArgumentParser(description=__doc__,
+                                 formatter_class=argparse.RawDescriptionHelpFormatter)
+    ap.add_argument("--spccl",       required=True, help="Cheetah .spccl candidate-list file")
+    ap.add_argument("--fil",         required=True, help="per-candidate filterbank file")
+    ap.add_argument("--payload-out", required=True, help="where to write payload bytes")
+    ap.add_argument("--meta-out",    required=True, help="where to write msgpack meta")
+    ap.add_argument("--row",         type=int, default=0,
+                    help="which .spccl row to use (default: 0)")
+    args = ap.parse_args(argv)
+
+    meta = parse_spccl_row(args.spccl, row=args.row)
+    copy_payload(args.fil, args.payload_out)
+    write_meta(args.meta_out, meta)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
