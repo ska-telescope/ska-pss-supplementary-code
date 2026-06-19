@@ -22,12 +22,14 @@ Each Kafka message consists of a MessagePack-serialised envelope followed by a b
 |---|---|---|
 | `schema_version` | uint8 | Contract version. Current: `1` |
 | `message_id` | string (UUID4) | Unique message identifier |
-| `producer_id` | string | Producing PSS node or beam identifier |
+| `producer_id` | string | Producing PSS node identifier |
 | `timestamp_utc` | uint64 | Message production time, Unix epoch milliseconds |
-| `candidate_type` | string | Fixed value: `"single_pulse"` |
+| `candidate_type` | string | Fixed value: `"single_pulse"` | # candidte identifier tbc
 | `payload_mode` | string | `"inline"` or `"claim_check"` |
 | `payload_size_bytes` | uint32 | Total byte length of the binary payload section |
 | `checksum_sha256` | string | SHA-256 hex digest of the binary payload |
+
+> Consider rolling candidate data into kafka message directly per candidate, is this more efficient/faster than sending single row SPCCL ?maybe build both and try.
 
 For `payload_mode = "claim_check"`, the following additional fields are present:
 
@@ -44,8 +46,14 @@ For `payload_mode = "inline"`, the binary payload immediately follows the envelo
 
 The SPCCL record is serialised as part of the MessagePack envelope (nested map under key `spccl`). The specific fields and types are defined by the Cheetah SPCCL data model and are to be confirmed against the current Cheetah implementation as part of AT4-2179.
 
-**Open:** Full enumeration of SPCCL fields, types, units, and any fields required specifically for the SDP interface (e.g. `beam_id`, `scheduling_block_id`) to be agreed with Ben Stappers / Lina and validated against BDD feature files.
-
+  | Field | Source `.spccl` column | Type | Unit | Notes |
+  |---|---|---|---|---|
+  | `mjd` | `MJD(decimal days)` | **float64** | MJD, decimal days | Must be float64. MJD is ~6×10⁴ days; float32 (~7
+  significant digits) resolves only to ~seconds and would destroy ms/µs arrival-time precision. |
+  | `dm` | `dm(dimensionless)` | float32 | dimensionless | Dispersion measure."|
+  | `width` | `width(ms)` | float32 | milliseconds | Pulse width. |
+  | `snr` | `sigma` | float32 | dimensionless | Detection significance. Renamed from the Cheetah `sigma` column. |
+  | `label` | `label` | int16 | dimensionless | which cluster group the candidate belongs to |
 ---
 
 ## 4. Binary Payload - Dedispersed Filterbank Cube
@@ -89,7 +97,7 @@ This ensures all candidates from the same beam within a scheduling block are rou
 **Consumer group:** `cg-pss` (placeholder - to be confirmed with SDP).
 
 **Offset management:** Manual commit by SDP consumer after successful processing, as per AT4-2181.
-
+> build in resilence for deluge of candidates, switch to newest in first out mode until data cadence returns to normal. 
 ---
 
 ## 7. BDD Feature File Alignment
@@ -107,9 +115,12 @@ This ensures all candidates from the same beam within a scheduling block are rou
 
 ## 8. Open Questions
 
-1. Confirm filterbank cube dimensions (`n_time_samples`, `n_channels`, `time_resolution`) - Ben Stappers / Lina.
-2. Confirm SPCCL fields required in the Kafka contract and their types/units - align with current Cheetah implementation.
-3. Confirm sample type (float32 assumed).
-4. Confirm `payload_mode` default: will candidates always be inline at ~2.6 MB, or is claim-check required? Depends on agreed `max.message.bytes` for the topic.
-5. Confirm consumer group ID with SDP (Dominic Schaff).
+~~1. Confirm filterbank cube dimensions (`n_time_samples`, `n_channels`, `time_resolution`) - Ben Stappers / Lina.~~
+~~2. Confirm SPCCL fields required in the Kafka contract and their types/units - align with current Cheetah implementation.~~
+~~3. Confirm sample type (float32 assumed).~~
+~~4. Confirm `payload_mode` default: will candidates always be inline at ~2.6 MB, or is claim-check required? Depends on agreed `max.message.bytes` for the topic.~~
+~~5. Confirm consumer group ID with SDP.~~
 6. Confirm `beam_id` type and format - align with SDP Receive Addresses schema.
+7. Confirm size of DM-t plane 
+8. Test SPCCL fields directly in kafka message vs single line SPCCL
+9. Discuss consumer group structure and scaling with SDP
