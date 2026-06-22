@@ -23,17 +23,8 @@ def Nslopes(harm):
 
 def Nharms(seed_width, highest_width):
     for i in range(2, 9):
-        if i * seed_width > highest_width: return i - 1
+        if i * seed_width > highest_width + filter_spacing/2.0: return i - 1
     return 8
-
-def return_index(i, j, p, amb0):
-    if j == 0: return p
-    picks = [1, 3, 3, 5, 5, 7, 7, 9]
-    max_range = (picks[j] - 1) // 2
-    max_range0 = (amb0 - 1) // 2
-    indices = np.arange(-max_range0, max_range0 + 1)
-    offset = np.clip(indices[i], -max_range, max_range)
-    return int(np.clip(p + offset, 0, len(filters) - 1))
 
 def export_sheet(data, filename):
     df = pd.DataFrame(data, columns=columns)
@@ -48,17 +39,19 @@ used_slopes = 0
 max_width = 0
 for p0 in range(1, len(filters)):
     perr = filter_spacing
-    harms = Nharms(filters[p0], filters[-1])
+    harms = Nharms(filters[p0]-perr/2.0, filters[-1])  #use the middle width to calculate number of slopes required
     amb_slopes = Nslopes(harms)
 
-    filts = [np.argmin(np.abs(filters - (j * (filters[p0] - perr/2.0)))) for j in range(1, harms + 1)]
 
     for i in range(amb_slopes):
         used_slopes += 1
         r_idx, r_v1, r_v2, r_wid = [], [], [], []
+        target_width = filters[p0] - perr*(amb_slopes-i)/amb_slopes  # Target width corresponding to current slope
+        harms1 = Nharms(target_width, filters[-1])                   # Number of slopes available for this target width
+        filts = [np.argmin(np.abs(filters - (j * target_width))) for j in range(1, harms1 + 1)]
         for j in range(8):
-            if j < harms:
-                idx = return_index(i, j, filts[j], amb_slopes)
+            if j < harms1:
+                idx = filts[j]
                 r_idx.append(idx)
                 r_v1.append(filter_pos_values[idx])
                 r_v2.append(filter_neg_values[idx])
@@ -87,7 +80,8 @@ stream_seeds.append(max_idx)
 # 4. Normalizing and Padding (21 Groups x 11 Slopes = 231 rows)
 target_total = 231
 active_rows = used_slopes
-print(active_rows)
+nseeds = int(np.ceil(active_rows/11))
+print(f"Use Num_seeds = {nseeds} in the next script.")
 
 # Ensure stream is long enough for active rows
 while len(stream_v1) < active_rows:
