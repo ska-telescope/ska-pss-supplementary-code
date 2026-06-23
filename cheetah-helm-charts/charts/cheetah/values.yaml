@@ -1,0 +1,12 @@
+image:
+  repository: cheetah-demo
+  tag: "0.1"
+  pullPolicy: Never
+
+replicaCount: 1
+
+cheetah:
+  config: /etc/cheetah/startup/default-sps-sigproc_out.xml
+  pipeline: SinglePulse
+  source: udp_low_lite
+  loglevel: control

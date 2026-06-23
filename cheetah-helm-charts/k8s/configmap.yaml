@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cheetah-config
+data:
+  CHEETAH_CONFIG: "/etc/cheetah/configs/default_udp_low_empty.xml"
+  CHEETAH_PIPELINE: "Empty"
+  CHEETAH_SOURCE: "udp_low"

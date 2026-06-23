@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cheetah
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cheetah
+  template:
+    metadata:
+      labels:
+        app: cheetah
+    spec:
+      containers:
+        - name: cheetah
+          image: cheetah-demo:0.1
+          imagePullPolicy: Never
+          env:
+            - name: CHEETAH_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: cheetah-config
+                  key: CHEETAH_CONFIG
+            - name: CHEETAH_PIPELINE
+              valueFrom:
+                configMapKeyRef:
+                  name: cheetah-config
+                  key: CHEETAH_PIPELINE
+            - name: CHEETAH_SOURCE
+              valueFrom:
+                configMapKeyRef:
+                  name: cheetah-config
+                  key: CHEETAH_SOURCE
+          args:
+            - "--config=$(CHEETAH_CONFIG)"
+            - "-p"
+            - "$(CHEETAH_PIPELINE)"
+            - "-s"
+            - "$(CHEETAH_SOURCE)"
