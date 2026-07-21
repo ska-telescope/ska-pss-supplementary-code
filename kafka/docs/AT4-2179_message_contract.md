@@ -24,7 +24,7 @@ Each Kafka message consists of a MessagePack-serialised envelope followed by a b
 | `message_id` | string (UUID4) | Unique message identifier |
 | `producer_id` | string | Producing PSS node identifier |
 | `timestamp_utc` | uint64 | Message production time, Unix epoch milliseconds |
-| `candidate_type` | string | Fixed value: `"single_pulse"` | # candidte identifier tbc
+| `candidate_type` | string | Fixed value: `"single_pulse"` | # candidate identifier tbc
 | `payload_mode` | string | `"inline"` or `"claim_check"` |
 | `payload_size_bytes` | uint32 | Total byte length of the binary payload section |
 | `checksum_sha256` | string | SHA-256 hex digest of the binary payload |
