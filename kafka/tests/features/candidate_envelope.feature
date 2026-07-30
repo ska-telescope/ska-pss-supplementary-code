@@ -57,6 +57,9 @@ Feature: Candidate message envelope
       | checksum_sha256 absent                | ContractViolationError |
       | payload_size_bytes as a string        | ContractViolationError |
       | payload_size_bytes off by one         | ContractViolationError |
+      | payload_size_bytes beyond uint32      | ContractViolationError |
+      | schema_version packed as a float      | ContractViolationError |
+      | timestamp_utc negative                | ContractViolationError |
       | one payload byte corrupted            | ContractViolationError |
       | payload_mode "claim_check" and no storage_uri | ContractViolationError |
 
@@ -67,6 +70,31 @@ Feature: Candidate message envelope
       | an envelope length larger than the value | EnvelopeDecodeError |
       | an envelope that is not msgpack       | EnvelopeDecodeError  |
       | an envelope that is a msgpack array    | EnvelopeDecodeError  |
+
+  @unit
+  Scenario Outline: Integer envelope fields are unsigned and within contract range
+    # Contract section 2 types these uint8, uint64 and uint32. msgpack packs
+    # an integer at the narrowest width that fits, so schema_version 1
+    # arrives as a positive fixint rather than behind a uint8 marker: the
+    # testable claim is the integer family and the contract range, not the
+    # marker byte. Without this, a producer packing payload_size_bytes as a
+    # signed 64-bit value would satisfy every other scenario here.
+    When the candidate is serialised for publication
+    Then the msgpack encoding of "<field>" is an unsigned integer
+    And "<field>" is within <range>
+
+    Examples: contract section 2 integer widths
+      | field              | range  |
+      | schema_version     | uint8  |
+      | timestamp_utc      | uint64 |
+      | payload_size_bytes | uint32 |
+
+  @unit
+  Scenario: The configured topic name follows the SDP naming convention
+    # Contract section 5: topic names are assigned by the SDP Receive
+    # Addresses system following the [a-z][a-z0-9\-]* convention.
+    Given the shipped producer and consumer configuration
+    Then every configured topic name matches "[a-z][a-z0-9\-]*"
 
   @unit
   Scenario: A claim-check candidate names its storage location
