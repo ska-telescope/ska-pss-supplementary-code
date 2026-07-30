@@ -12,7 +12,8 @@ Feature: Candidate message envelope
   splits and validates that framing before any handler sees the candidate.
 
   Enforces AT4-2179 section 2 (message envelope), section 5 (partitioning
-  and keying) and the inline payload_mode framing.
+  and keying), section 6 (delivery semantics) and the inline payload_mode
+  framing.
 
   Background:
     Given a candidate adapted from row 0 of "cheetah_demo.spccl"
@@ -22,20 +23,20 @@ Feature: Candidate message envelope
     When the candidate is serialised for publication
     Then the value begins with a 4-byte big-endian envelope length
     And the envelope decodes as a MessagePack map
-    And the envelope declares schema_version 1
-    And the envelope declares candidate_type "single_pulse"
-    And the envelope declares payload_mode "inline"
-    And "message_id" is a UUID4 string
-    And "producer_id" is a non-empty string
-    And "timestamp_utc" is a Unix epoch milliseconds value within a uint64
-    And "payload_size_bytes" equals the actual payload length
-    And "checksum_sha256" is the SHA-256 hex digest of the payload bytes
+    And the recovered "schema_version" is 1
+    And the recovered "candidate_type" is "single_pulse"
+    And the recovered "payload_mode" is "inline"
+    And the recovered "message_id" is a UUID4 string
+    And the recovered "producer_id" is a non-empty string
+    And the recovered "timestamp_utc" is a Unix epoch milliseconds value
+    And the recovered "payload_size_bytes" equals the actual payload length
+    And the recovered "checksum_sha256" is the SHA-256 hex digest of the payload
 
   @unit
   Scenario: The consumer reconstructs the payload byte-for-byte
     When the candidate is serialised for publication
     And the consumer parses the message value
-    Then the recovered payload is identical to the source filterbank bytes
+    Then the recovered payload is byte-for-byte identical to the source filterbank
     And validation of the envelope succeeds
 
   @unit
@@ -44,44 +45,16 @@ Feature: Candidate message envelope
     Then the value length is 4 plus the envelope length plus the payload length
 
   @unit
-  Scenario Outline: The consumer rejects a non-conformant message
-    When the candidate is serialised with <mutation>
-    Then the consumer rejects it with <error>
-
-    Examples: envelope field violations, contract section 2
-      | mutation                              | error                  |
-      | schema_version 2                      | ContractViolationError |
-      | candidate_type "periodicity"          | ContractViolationError |
-      | payload_mode "bogus"                  | ContractViolationError |
-      | message_id absent                     | ContractViolationError |
-      | checksum_sha256 absent                | ContractViolationError |
-      | payload_size_bytes as a string        | ContractViolationError |
-      | payload_size_bytes off by one         | ContractViolationError |
-      | payload_size_bytes beyond uint32      | ContractViolationError |
-      | schema_version packed as a float      | ContractViolationError |
-      | timestamp_utc negative                | ContractViolationError |
-      | one payload byte corrupted            | ContractViolationError |
-      | payload_mode "claim_check" and no storage_uri | ContractViolationError |
-
-    Examples: framing violations, decoded before field validation
-      | mutation                              | error                |
-      | the envelope length prefix removed    | EnvelopeDecodeError  |
-      | the envelope length prefix truncated to 3 bytes | EnvelopeDecodeError |
-      | an envelope length larger than the value | EnvelopeDecodeError |
-      | an envelope that is not msgpack       | EnvelopeDecodeError  |
-      | an envelope that is a msgpack array    | EnvelopeDecodeError  |
-
-  @unit
   Scenario Outline: Integer envelope fields are unsigned and within contract range
     # Contract section 2 types these uint8, uint64 and uint32. msgpack packs
     # an integer at the narrowest width that fits, so schema_version 1
-    # arrives as a positive fixint rather than behind a uint8 marker: the
-    # testable claim is the integer family and the contract range, not the
-    # marker byte. Without this, a producer packing payload_size_bytes as a
-    # signed 64-bit value would satisfy every other scenario here.
+    # arrives as a positive fixint (0x01) rather than behind a uint8 marker:
+    # the testable claim is the integer family and the contract range, not
+    # the marker byte. Without this, a producer packing payload_size_bytes as
+    # a signed 64-bit value would satisfy every other scenario here.
     When the candidate is serialised for publication
     Then the msgpack encoding of "<field>" is an unsigned integer
-    And "<field>" is within <range>
+    And the recovered "<field>" is within <range>
 
     Examples: contract section 2 integer widths
       | field              | range  |
@@ -90,20 +63,86 @@ Feature: Candidate message envelope
       | payload_size_bytes | uint32 |
 
   @unit
+  Scenario Outline: The consumer rejects a non-conformant envelope
+    When the candidate is serialised with <mutation>
+    Then the consumer rejects it with ContractViolationError
+
+    Examples: envelope field violations, contract section 2
+      | mutation                                      |
+      | schema_version 2                              |
+      | schema_version packed as a float              |
+      | candidate_type "periodicity"                  |
+      | payload_mode "bogus"                          |
+      | message_id absent                             |
+      | checksum_sha256 absent                        |
+      | checksum_sha256 not matching the payload      |
+      | payload_size_bytes as a string                |
+      | payload_size_bytes off by one                 |
+      | payload_size_bytes beyond uint32              |
+      | timestamp_utc negative                        |
+      | one payload byte corrupted                    |
+      | payload_mode "claim_check" and no storage_uri |
+
+  @unit
+  Scenario Outline: The consumer rejects a malformed frame
+    # These fail in parse_value, before any field validation runs.
+    When the candidate is serialised with <mutation>
+    Then the consumer rejects it with EnvelopeDecodeError
+
+    Examples: framing violations
+      | mutation                                        |
+      | the envelope length prefix removed              |
+      | the envelope length prefix truncated to 3 bytes |
+      | an envelope length larger than the value        |
+      | an envelope that is not msgpack                 |
+      | an envelope that is a msgpack array             |
+
+  @unit @unimplemented
+  Scenario: A message_id that is not a UUID4 is rejected
+    # gap: contract.validate types message_id as str only, so any string
+    # passes. Contract section 2 specifies string (UUID4), and section 6
+    # makes message_id the deduplication key, so a malformed id is not
+    # cosmetic: it breaks SDP's ability to deduplicate.
+    When the candidate is serialised with message_id "not-a-uuid"
+    Then the consumer rejects it with ContractViolationError
+
+  @unit
+  Scenario: A claim-check envelope names its storage location
+    # Contract section 2. Inline is the expected mode for the ~2.6 MB
+    # candidate; claim_check is specified for oversized payloads. The subject
+    # here is deliberately the consumer, not the producer: the shipped
+    # producer hardcodes payload_mode "inline" with a fixed 9-key envelope
+    # and has no claim-check path, so this is stated as an envelope the
+    # consumer must accept rather than one PSS can currently emit.
+    Given an envelope in claim_check mode with a storage_uri and storage_backend
+    And no payload bytes after the envelope, per section 2
+    When the consumer parses the message value
+    Then validation of the envelope succeeds
+    And neither payload_size_bytes nor checksum_sha256 is checked
+
+  @unit
   Scenario: The configured topic name follows the SDP naming convention
     # Contract section 5: topic names are assigned by the SDP Receive
     # Addresses system following the [a-z][a-z0-9\-]* convention.
     Given the shipped producer and consumer configuration
-    Then every configured topic name matches "[a-z][a-z0-9\-]*"
+    Then every configured topic name matches "[a-z][a-z0-9\-]*" in full
 
   @unit
-  Scenario: A claim-check candidate names its storage location
-    # Contract section 2. Inline is the expected mode for the ~2.6 MB
-    # candidate; claim_check is specified for oversized payloads.
-    When the candidate is serialised in claim_check mode
-    Then "storage_uri" is a non-empty string
-    And "storage_backend" is a non-empty string
-    And validation of the envelope succeeds
+  Scenario: The configured consumer group matches the contract
+    # Contract section 6 names cg-pss, marked as a placeholder pending SDP
+    # confirmation. Asserted so a silent drift from the contract is caught.
+    Given the shipped consumer configuration
+    Then the configured group id is "cg-pss"
+
+  @unimplemented
+  Scenario: A redelivered candidate is surfaced once
+    # gap: delivery is at-least-once (contract section 6) with message_id as
+    # the deduplication key, but the consumer holds no dedup state at all,
+    # so a redelivered message reaches the handler twice. Not covered by
+    # test_consumer_poison.py or test_consumer_commit_resume.py either.
+    Given the candidate has been consumed once
+    When the same message_id is delivered again
+    Then the handler is invoked only once
 
   @integration
   Scenario: The C++ producer and Python consumer agree on the wire format
@@ -113,10 +152,10 @@ Feature: Candidate message envelope
     When the producer publishes the adapted candidate with acks=all
     And the consumer subscribes from the earliest offset
     Then the consumer receives one message within 30 seconds
-    And the received envelope passes AT4-2179 validation
-    And the received "message_id" matches the message_id the producer reported
-    And the received payload is identical to the source filterbank bytes
-    And the received "spccl.mjd" is 56000.0000602978 to within 1e-11 days
+    And validation of the envelope succeeds
+    And the recovered "message_id" matches the message_id the producer reported
+    And the recovered payload is byte-for-byte identical to the source filterbank
+    And the recovered "spccl.mjd" is 56000.0000602978 to within 1e-11 days
 
   @integration
   Scenario: Candidates from one beam are keyed onto a single partition

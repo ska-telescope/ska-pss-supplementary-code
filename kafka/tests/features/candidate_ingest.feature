@@ -22,15 +22,20 @@ Feature: Cheetah candidate ingest
 
   Scenario: The filterbank becomes the payload unchanged
     When the adaptor is run for row 0
-    Then the payload is byte-for-byte identical to the source filterbank
-    And the payload is 2300000 bytes
+    Then the written payload is byte-for-byte identical to the source filterbank
+    And the written payload is 2300000 bytes
 
   Scenario Outline: Any candidate row adapts to the producer's SPCCL fields
+    # mjd is asserted exactly: the adaptor keeps it float64, which round-trips
+    # 56000.0000602978 bit-for-bit. The other three are deliberately narrowed
+    # to float32 by _F32_KEYS, so 298.8 arrives as 298.79998779296875 and
+    # exact equality would fail. Tolerance here is the correct assertion, not
+    # a concession.
     When the adaptor is run for row <row>
-    Then the meta field "mjd" is <mjd>
-    And the meta field "dm" is <dm>
-    And the meta field "width" is <width>
-    And the meta field "snr" is <snr>
+    Then the meta field "mjd" is exactly <mjd>
+    And the meta field "dm" is <dm> to within float32 precision
+    And the meta field "width" is <width> to within float32 precision
+    And the meta field "snr" is <snr> to within float32 precision
 
     Examples: rows of cheetah_demo.spccl
       | row | mjd              | dm    | width | snr   |
@@ -42,12 +47,15 @@ Feature: Cheetah candidate ingest
     # Terminology difference only, same quantity. Contract section 3.
     When the adaptor is run for row 0
     Then the meta map has no "sigma" key
-    And the meta field "snr" is 13.22
+    And the meta field "snr" is 13.22 to within float32 precision
 
   Scenario: Pulse width stays in milliseconds
-    # Pass-through, no unit conversion. Contract section 3.
+    # Documents intent, and deliberately asserts no unit: msgpack carries a
+    # bare number, so "milliseconds" is unassertable from the encoding. The
+    # testable claim is that the value passes through unconverted, which is
+    # why it equals the .spccl column rather than a seconds-scaled value.
     When the adaptor is run for row 0
-    Then the meta field "width" is 1024 milliseconds
+    Then the meta field "width" is 1024 to within float32 precision
 
   Scenario: Routing fields absent from .spccl fall through to producer config
     # scheduling_block_id and beam_id are not Cheetah outputs. They are
@@ -57,18 +65,25 @@ Feature: Cheetah candidate ingest
     And the meta map has no "beam_id" key
 
   Scenario: A candidate list Cheetah did not write is rejected
-    Given the candidate list header is "not the expected header"
+    # Works on a copy: the committed fixture must not be mutated in place.
+    Given a copy of the candidate list whose header is "not the expected header"
     When the adaptor is run for row 0
-    Then adaptation fails with "unexpected .spccl header"
+    Then adaptation fails with ValueError matching "unexpected .spccl header"
 
   Scenario: A candidate row that is not present is rejected
     When the adaptor is run for row 9
-    Then adaptation fails because row 9 exceeds the 3 available rows
+    Then adaptation fails with IndexError naming the number of available rows
 
   @unimplemented
   Scenario: The cluster label reaches the producer
     # gap: parse_spccl_row reads columns 0 to 3 only and never reads the
     # label column, so label never reaches meta.msgpack or the envelope.
-    # The contract (section 3) requires it as an int16 SPCCL field.
+    # Contract section 3 requires it as an SPCCL field.
+    #
+    # note: the contract types label int16, but real Cheetah cluster ids in
+    # this fixture are 48611, 54056 and 129371, all outside the int16 range
+    # of -32768..32767. The width in contract section 3 needs settling on
+    # AT4-2179 before this is implemented; specified here as an unsigned
+    # integer, which is what msgpack emits for a positive cluster id.
     When the adaptor is run for row 0
-    Then the meta field "label" is 48611
+    Then the meta field "label" is exactly 48611

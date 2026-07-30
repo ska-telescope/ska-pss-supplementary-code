@@ -12,12 +12,17 @@ Feature: SPCCL metadata in the envelope
   numerical, not stylistic: MJD is around 6e4 days, so float32's seven
   significant digits resolve only to seconds and would destroy the
   millisecond and microsecond arrival-time precision the candidate exists to
-  report. Every other scalar is float32 by contract.
+  report. Every other floating-point scalar is float32 by contract; label is
+  an integer cluster id.
 
-  Type assertions here are made on the encoded msgpack type marker, not on
+  Float assertions here are made on the encoded msgpack type marker, not on
   the decoded Python value. Python has a single float type, so decoding and
   then type-checking would pass even where the producer had packed float32
-  and silently truncated the MJD.
+  and silently truncated the MJD. Marker assertions are valid for floats
+  precisely because msgpack does not narrow them.
+
+  Integers are different: msgpack packs them at the narrowest width that
+  fits, so label is asserted by family and range rather than by marker.
 
   Background:
     Given a candidate adapted from row 0 of "cheetah_demo.spccl"
@@ -70,12 +75,22 @@ Feature: SPCCL metadata in the envelope
     And the message key is the scheduling block id and the beam id joined by a colon
 
   @unit @unimplemented
-  Scenario: The cluster label is carried as int16
-    # gap: the adaptor never reads the label column and the producer packs
-    # no label field, so the contract's int16 label never reaches the wire.
+  Scenario: The cluster label is carried as an unsigned integer
+    # gap: the adaptor never reads the label column and the producer packs no
+    # label field, so the contract's label never reaches the wire.
+    #
+    # note: contract section 3 types label int16, but that cannot be right.
+    # The real Cheetah cluster ids in this fixture are 48611, 54056 and
+    # 129371, all outside int16's -32768..32767, and msgpack emits unsigned
+    # markers for positive integers anyway (48611 -> cd bde3, uint16;
+    # 129371 -> ce 0001f95b, uint32). An int16 marker assertion could never
+    # hold alongside a real label value. Specified as family-plus-range, as
+    # for the envelope integers. The declared width needs settling on
+    # AT4-2179 before this is implemented.
     When the candidate is serialised for publication
-    Then the msgpack type marker of "spccl.label" is int16
-    And the recovered "spccl.label" is 48611
+    Then the msgpack encoding of "spccl.label" is an unsigned integer
+    And the recovered "spccl.label" is within uint32
+    And the recovered "spccl.label" is exactly 48611
 
   @unit @unimplemented
   Scenario: An MJD packed as float32 is rejected
@@ -99,6 +114,11 @@ Feature: SPCCL metadata in the envelope
       | label |
 
   @unit
-  Scenario: An SPCCL record that is not a map is rejected
-    When the candidate is serialised with "spccl" as a string
+  Scenario Outline: An SPCCL record that is not a map is rejected
+    When the candidate is serialised with <mutation>
     Then the consumer rejects it with ContractViolationError
+
+    Examples:
+      | mutation                |
+      | "spccl" as a string     |
+      | "spccl" absent entirely |
