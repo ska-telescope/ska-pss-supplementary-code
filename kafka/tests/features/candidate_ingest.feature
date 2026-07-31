@@ -73,11 +73,5 @@ Feature: Cheetah candidate ingest
     # gap: parse_spccl_row reads columns 0 to 3 only and never reads the
     # label column, so label never reaches meta.msgpack or the envelope.
     # Contract section 3 requires it as an SPCCL field.
-    #
-    # note: the contract types label int16, but real Cheetah cluster ids in
-    # this fixture are 48611, 54056 and 129371, all outside the int16 range
-    # of -32768..32767. The width in contract section 3 needs settling on
-    # AT4-2179 before this is implemented; specified here as an unsigned
-    # integer, which is what msgpack emits for a positive cluster id.
     When the adaptor is run for row 0
     Then the meta field "label" is exactly 48611
