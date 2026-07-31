@@ -77,15 +77,7 @@ Feature: SPCCL metadata in the envelope
   Scenario: The cluster label is carried as an unsigned integer
     # gap: the adaptor never reads the label column and the producer packs no
     # label field, so the contract's label never reaches the wire.
-    #
-    # note: contract section 3 types label int16, but that cannot be right.
-    # The real Cheetah cluster ids in this fixture are 48611, 54056 and
-    # 129371, all outside int16's -32768..32767, and msgpack emits unsigned
-    # markers for positive integers anyway (48611 -> cd bde3, uint16;
-    # 129371 -> ce 0001f95b, uint32). An int16 marker assertion could never
-    # hold alongside a real label value. Specified as family-plus-range, as
-    # for the envelope integers. The declared width needs settling on
-    # AT4-2179 before this is implemented.
+
     
     When the candidate is serialised for publication
     Then the msgpack encoding of "spccl.label" is an unsigned integer
