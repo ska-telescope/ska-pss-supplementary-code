@@ -115,6 +115,37 @@ The fixture helper's `--payload-size` (random bytes, default 2.3 MB) and
 `--payload-from <path>` (copy verbatim from an existing file) are
 mutually exclusive.
 
+### Sending a real Cheetah candidate
+
+`kafka/tools/make_cheetah_fixture.py` turns one row of a Cheetah
+`.spccl` candidate list plus the matching per-candidate
+`<date_time>.fil` filterbank into the `payload.bin` + `meta.msgpack`
+pair consumed by `--payload-file` and `--meta-file`.
+`scheduling_block_id` and `beam_id` are not present in `.spccl`; they
+fall through to the producer's `synthetic_*` defaults in
+`producer.conf`. `width` is passed through in milliseconds.
+
+To pair a row with a filterbank: each per-candidate `.fil` is named
+`YYYY_MM_DD_HH:MM:SS.fil` from the row's MJD (whole-second portion of
+the fractional day). The adaptor does not enforce this -- you pass
+`--fil` and `--row` together.
+
+```
+conda activate pss-kafka
+python -m kafka.tools.make_cheetah_fixture \
+    --spccl /path/to/2012_03_14_00:00:00.spccl \
+    --fil   /path/to/2012_03_14_00:00:36.fil   \
+    --payload-out /tmp/cheetah_payload.bin     \
+    --meta-out    /tmp/cheetah_meta.msgpack    \
+    --row 0
+
+kafka/build/producer/kafka_producer_cli \
+    --config kafka/producer/config/producer.conf \
+    --payload-file /tmp/cheetah_payload.bin \
+    --meta-file    /tmp/cheetah_meta.msgpack \
+    --count 1
+```
+
 ## Verify with the consumer helper
 
 `kafka/tools/consume_compact.py` reads messages back from the broker and
