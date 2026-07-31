@@ -68,7 +68,6 @@ Feature: SPCCL metadata in the envelope
     # are not Cheetah outputs. They are the source of the message key.
     # note: contract section 3 documents label but omits these two fields,
     # although the producer packs both. The contract table needs updating;
-    # the code is already correct, so this scenario is not tagged as a gap.
     When the candidate is serialised for publication
     Then the recovered "spccl.scheduling_block_id" is a non-empty string
     And the recovered "spccl.beam_id" is a non-empty string
@@ -87,6 +86,7 @@ Feature: SPCCL metadata in the envelope
     # hold alongside a real label value. Specified as family-plus-range, as
     # for the envelope integers. The declared width needs settling on
     # AT4-2179 before this is implemented.
+    
     When the candidate is serialised for publication
     Then the msgpack encoding of "spccl.label" is an unsigned integer
     And the recovered "spccl.label" is within uint32

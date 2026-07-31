@@ -29,8 +29,7 @@ Feature: Cheetah candidate ingest
     # mjd is asserted exactly: the adaptor keeps it float64, which round-trips
     # 56000.0000602978 bit-for-bit. The other three are deliberately narrowed
     # to float32 by _F32_KEYS, so 298.8 arrives as 298.79998779296875 and
-    # exact equality would fail. Tolerance here is the correct assertion, not
-    # a concession.
+    # exact equality would fail.
     When the adaptor is run for row <row>
     Then the meta field "mjd" is exactly <mjd>
     And the meta field "dm" is <dm> to within float32 precision

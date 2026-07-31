@@ -7,7 +7,7 @@
 
 @at4-2179
 Feature: Candidate message envelope
-  Each Kafka message value is a 4-byte big-endian envelope length, then a
+  Each Kafka message value is a 4-byte envelope length, then a
   MessagePack-serialised envelope map, then the binary payload. The consumer
   splits and validates that framing before any handler sees the candidate.
 
@@ -21,7 +21,7 @@ Feature: Candidate message envelope
   @unit
   Scenario: A published candidate carries a conformant envelope
     When the candidate is serialised for publication
-    Then the value begins with a 4-byte big-endian envelope length
+    Then the value begins with a 4-byte envelope length
     And the envelope decodes as a MessagePack map
     And the recovered "schema_version" is 1
     And the recovered "candidate_type" is "single_pulse"
@@ -138,9 +138,7 @@ Feature: Candidate message envelope
   Scenario: A redelivered candidate is surfaced once
     # gap: delivery is at-least-once (contract section 6) with message_id as
     # the deduplication key, but the consumer holds no dedup state at all,
-    # so a redelivered message reaches the handler twice. Not covered by
-    # test_consumer_poison.py or test_consumer_commit_resume.py either.
-    Given the candidate has been consumed once
+    # so a redelivered message reaches the handler twice. 
     When the same message_id is delivered again
     Then the handler is invoked only once
 
