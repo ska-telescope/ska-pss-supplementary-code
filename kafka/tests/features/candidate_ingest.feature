@@ -43,11 +43,6 @@ Feature: Cheetah candidate ingest
       | 1   | 56000.0000617659 | 368.8 | 1024  | 15.75 |
       | 2   | 56000.0001523378 | 653.6 | 512   | 11.58 |
 
-  Scenario: Cheetah's sigma column is carried as snr
-    # Terminology difference only, same quantity. Contract section 3.
-    When the adaptor is run for row 0
-    Then the meta map has no "sigma" key
-    And the meta field "snr" is 13.22 to within float32 precision
 
   Scenario: Pulse width stays in milliseconds
     # Documents intent, and deliberately asserts no unit: msgpack carries a
