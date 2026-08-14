@@ -1,0 +1,214 @@
+@startuml
+title PSS Control Flow
+
+skinparam BoxPadding 10
+
+participant K8S as K8S
+participant TMC as TMC
+participant "CSP.LMC" as CSP
+participant CBF as CBF
+participant "PSS.LMC" as PSS
+participant CHEETAH as CHEETAH
+participant SDP as SDP
+
+==Deployment==
+
+hnote over PSS #SkyBlue : **State: [EMPTY]**
+K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
+CHEETAH -> CHEETAH: Validate
+CHEETAH -> PSS: Logs(Config accepted)
+hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+
+==AssignResources==
+
+TMC -> SDP: AssignResources()
+SDP -> TMC: Dest addrs
+TMC -> CSP: AssignResources(Dest addrs)
+CSP -> PSS: AssignResources(Dest addrs)
+PSS -> CSP: PSS addrs
+hnote over PSS #SkyBlue : **State: [IDLE]**
+hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+CSP -> CBF: AssignResources(PSS Addrs)
+
+==Configure 1==
+
+TMC -> CSP: Configure()
+CSP -> CBF: Configure()
+CSP -> PSS: Configure(json)
+PSS -> PSS: Compute diff w.r.t bootstrap
+PSS -> CHEETAH: gRPC(diff)
+CHEETAH -> PSS: Logs(Config accepted)
+hnote over PSS #SkyBlue : **State: [READY]**
+hnote over CHEETAH #LimeGreen : **State: [CONFIGURED]**
+TMC -> SDP: Configure()
+TMC -> CBF: Delay polys
+CBF -> CHEETAH: Data(id=0, valid=false)
+CHEETAH -> PSS: Logs(Receiving data (invalid, id=0))
+SDP -> CBF: Jones corrections
+CBF -> CHEETAH: Data(id=0, valid=true)
+CHEETAH -> PSS: Logs(Receiving data (valid, id=0))
+
+
+==Scan 1==
+
+TMC -> CSP: Scan(id=1, start_time, duration)
+CSP -> CBF: Scan(id=1, start_time, duration)
+CSP -> PSS: Scan(id=1, start_time, duration)
+PSS -> CHEETAH: gRPC(id=1)
+CBF -> CHEETAH: Data(id=1, valid=true)
+CHEETAH -> PSS: Logs(Receiving data, (valid, id=1))
+hnote over PSS #SkyBlue : **State: [SCANNING]**
+hnote over CHEETAH #LimeGreen : **State: [SCANNING]**
+CHEETAH -> CHEETAH: TRANSIENT_SEARCH
+CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 1 in progress)
+CHEETAH -> SDP: Candidates (TRANSIENT_SEARCH 1)
+alt start_time + duration arrives before EndScan()
+    PSS -> CHEETAH: gRPC(id=0)
+    CBF -> CHEETAH: Data(id=0, valid=false)
+    CHEETAH -> CHEETAH: Stop TRANSIENT_SEARCH 1
+    CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 1 completed)
+    CHEETAH -> CHEETAH: Start PULSAR_SEARCH 1
+    CHEETAH -> PSS: Logs(PULSAR_SEARCH 1 in progress)
+    CHEETAH -> SDP: Candidates (PULSAR_SEARCH 1)
+    hnote over PSS #SkyBlue : **State: [READY]**
+    hnote over CHEETAH #LimeGreen : **State: [PROCESSING]**
+    note right of CHEETAH
+    Scan duration has expired
+    end note
+else EndScan() arrives first
+    note over PSS,CBF
+    Continute until EndScan()
+    end note
+end
+
+==End Scan 1==
+
+TMC -> CSP: EndScan()
+CSP -> CBF: EndScan()
+CSP -> PSS: EndScan()
+alt TRANSIENT_SEARCH 1 still processing
+    CBF -> CHEETAH: Data(id0, valid=false)
+    PSS -> CHEETAH: gRPC(id=0)
+    CHEETAH -> PSS: Logs(Receiving data, (invalid, id=0))
+    CHEETAH -> CHEETAH: Stop TRANSIENT_SEARCH 1
+    CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 1 completed)
+    CHEETAH -> CHEETAH: Start PULSAR_SEARCH 1
+    CHEETAH -> PSS: Logs(PULSAR_SEARCH 1 in progress)
+    CHEETAH -> SDP: Candidates (PULSAR_SEARCH 1)
+else TRANSIENT_SEARCH 1 already complete
+    note over PSS,CHEETAH
+    No action
+    end note
+end
+
+hnote over PSS #SkyBlue : **State: [READY]**
+hnote over CHEETAH #LimeGreen : **State: [PROCESSING]**
+
+==Configure 2==
+
+TMC -> CSP: Configure()
+CSP -> CBF: Configure()
+CSP -> PSS: Configure(json)
+PSS -> PSS: Compute diff w.r.t bootstrap
+PSS -> CHEETAH: gRPC(diff)
+CHEETAH -> PSS: Logs(Config accepted)
+hnote over PSS #SkyBlue : **State: [READY]**
+hnote over CHEETAH #LimeGreen : **State: [PROCESSING]**
+TMC -> SDP: Configure()
+TMC -> CBF: Delay polys
+CBF -> CHEETAH: Data(id=0, valid=false)
+CHEETAH -> PSS: Logs(Receiving data (invalid, id=0))
+SDP -> CBF: Jones corrections
+CBF -> CHEETAH: Data(id=0, valid=true)
+CHEETAH -> PSS: Logs(Receiving data (valid, id=0))
+
+==Scan 2==
+
+TMC -> CSP: Scan(id=2, start_time, duration)
+CSP -> CBF: Scan(id=2, start_time, duration)
+CSP -> PSS: Scan(id=2, start_time, duration)
+PSS -> CHEETAH: gRPC(id=2)
+CBF -> CHEETAH: Data(id=2, valid=true)
+CHEETAH -> PSS: Logs(Receiving data, (valid, id=2))
+hnote over PSS #SkyBlue : **State: [SCANNING]**
+hnote over CHEETAH #LimeGreen : **State: [SCANNING]**
+CHEETAH -> CHEETAH: TRANSIENT_SEARCH
+CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 2 in progress)
+CHEETAH -> SDP: Candidates (TRANSIENT_SEARCH 2)
+alt start_time + duration arrives before EndScan()
+    PSS -> CHEETAH: gRPC(id=0)
+    CBF -> CHEETAH: Data(id=0, valid=false)
+    CHEETAH -> CHEETAH: Stop TRANSIENT_SEARCH 2
+    CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 2 completed)
+    CHEETAH -> CHEETAH: Stop PULSAR_SEARCH 1
+    CHEETAH -> PSS: Logs(PULSAR_SEARCH 1 completed)
+    CHEETAH -> CHEETAH: Start PULSAR_SEARCH 2
+    CHEETAH -> PSS: Logs(PULSAR_SEARCH 2 in progress)
+    CHEETAH -> SDP: Candidates (PULSAR_SEARCH 2)
+    hnote over PSS #SkyBlue : **State: [READY]**
+    hnote over CHEETAH #LimeGreen : **State: [PROCESSING]**
+    note right of CHEETAH
+    Scan duration has expired
+    end note
+else EndScan() arrives first
+    note over PSS,CBF
+    Continute until EndScan()
+    end note
+end
+
+==End Scan 2==
+
+TMC -> CSP: EndScan()
+CSP -> CBF: EndScan()
+CSP -> PSS: EndScan()
+alt TRANSIENT_SEARCH 2 still processing
+    CBF -> CHEETAH: Data(id0, valid=false)
+    PSS -> CHEETAH: gRPC(id=0)
+    CHEETAH -> PSS: Logs(Receiving data, (invalid, id=0))
+    CHEETAH -> CHEETAH: Stop TRANSIENT_SEARCH 2
+    CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 2 completed)
+    CHEETAH -> CHEETAH: Start PULSAR_SEARCH 2
+    CHEETAH -> PSS: Logs(PULSAR_SEARCH 2 in progress)
+    CHEETAH -> SDP: Candidates (PULSAR_SEARCH 2)
+else TRANSIENT_SEARCH 2 already complete
+    note over PSS,CHEETAH
+    No action
+    end note
+end
+
+==End==
+
+TMC -> CSP: End()
+CSP -> PSS: End()
+hnote over PSS #SkyBlue : **State: [IDLE]**
+
+note right of CHEETAH
+No operational effect on cheetah.
+Outstanding FDAS continues.
+Last configuration remains loaded.
+end note
+
+==ReleaseResources==
+
+TMC -> CSP: ReleaseResources()
+CSP -> CBF: ReleaseResources()
+CSP -> PSS: ReleaseResources()
+hnote over PSS #SkyBlue : **State: [EMPTY]**
+PSS -> CHEETAH: Drain outstanding work
+
+alt PUlSAR_SEARCH still processing
+    CHEETAH -> CHEETAH: Complete processing, no new work accepted
+    CHEETAH -> PSS: Logs(PULSAR_SEARCH 2 completed)
+    CHEETAH -> CHEETAH: Drained
+    CHEETAH -> PSS: Cheetah quiescent
+else PULSAR_SEARCH already complete
+    CHEETAH -> CHEETAH: Drained
+    CHEETAH -> PSS: Cheetah quiescent
+end
+
+PSS -> K8S: terminate/recycle cheetah
+K8S -> K8S: cheetah container restarts
+K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
+hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+
+@endum
