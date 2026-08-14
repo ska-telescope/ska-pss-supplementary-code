@@ -9,7 +9,7 @@ participant "CSP.LMC" as CSP
 participant "PSS.LMC" as PSS
 participant CHEETAH as CHEETAH
 
-
+activate CHEETAH
 alt Abort requested from an active obsState
     == Abort ==
     note over TMC,PSS
@@ -20,7 +20,9 @@ alt Abort requested from an active obsState
     CSP -> PSS: Abort()
     hnote over PSS #SkyBlue : **State: [ABORTING]**
     PSS -> K8S: Terminate/recycle cheetah
-    K8S -> K8S: cheetah container restarts
+    deactivate CHEETAH
+    K8S -> K8S: cheetah container restart
+    activate CHEETAH
     K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
     hnote over PSS #SkyBlue : **State: [ABORTED]**
     hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
@@ -41,7 +43,9 @@ TMC -> CSP: Restart()
 CSP -> PSS: Restart()
 hnote over PSS #SkyBlue : **State: [RESTARTING]**
 PSS -> K8S: Terminate/recycle cheetah
+deactivate CHEETAH
 K8S -> K8S: cheetah container restarts
+activate CHEETAH
 note over CHEETAH
 Redundant restart if following Abort()
 end note

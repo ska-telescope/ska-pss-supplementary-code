@@ -16,6 +16,7 @@ participant SDP as SDP
 
 hnote over PSS #SkyBlue : **State: [EMPTY]**
 K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
+activate CHEETAH
 CHEETAH -> CHEETAH: Validate
 CHEETAH -> PSS: Logs(Config accepted)
 hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
@@ -208,7 +209,9 @@ else PULSAR_SEARCH already complete
 end
 
 PSS -> K8S: terminate/recycle cheetah
+deactivate CHEETAH
 K8S -> K8S: cheetah container restarts
+activate CHEETAH
 K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
 hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
 
