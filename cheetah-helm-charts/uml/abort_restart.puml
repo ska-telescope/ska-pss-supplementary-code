@@ -1,0 +1,54 @@
+@startuml
+title PSS Control Flow for Abort and Recovery
+
+skinparam BoxPadding 10
+
+participant K8S as K8S
+participant TMC as TMC
+participant "CSP.LMC" as CSP
+participant "PSS.LMC" as PSS
+participant CHEETAH as CHEETAH
+
+
+alt Abort requested from an active obsState
+    == Abort ==
+    note over TMC,PSS
+    Abort() may be issued from any
+    applicable observing state
+    end note
+    TMC -> CSP: Abort()
+    CSP -> PSS: Abort()
+    hnote over PSS #SkyBlue : **State: [ABORTING]**
+    PSS -> K8S: Terminate/recycle cheetah
+    K8S -> K8S: cheetah container restarts
+    K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
+    hnote over PSS #SkyBlue : **State: [ABORTED]**
+    hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+
+else Cheetah/PSS enters FAULT
+    note over PSS,CHEETAH
+    Failure may occur during any
+    activity
+    end note
+    CHEETAH -> PSS: Failure/Unhealthy
+    hnote over PSS #Pink : **State: [FAULT]**
+
+
+end
+
+==Restart==
+TMC -> CSP: Restart()
+CSP -> PSS: Restart()
+hnote over PSS #SkyBlue : **State: [RESTARTING]**
+PSS -> K8S: Terminate/recycle cheetah
+K8S -> K8S: cheetah container restarts
+note over CHEETAH
+Redundant restart if following Abort()
+end note
+K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
+hnote over PSS #SkyBlue : **State: [EMPTY]**
+hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+
+
+
+@enduml
