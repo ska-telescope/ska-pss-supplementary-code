@@ -1,6 +1,6 @@
 @startuml
 scale max 3500 height
-title PSS Control Flow
+title PSS Control Flow for TRANSIENT_SEARCH
 
 skinparam BoxPadding 10
 
