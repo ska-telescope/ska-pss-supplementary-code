@@ -1,4 +1,5 @@
 @startuml
+scale max 3500 height
 title PSS Control Flow
 
 skinparam BoxPadding 10
