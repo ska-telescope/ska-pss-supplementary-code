@@ -201,14 +201,11 @@ PSS -> CHEETAH: Drain outstanding work
 alt PUlSAR_SEARCH still processing
     CHEETAH -> CHEETAH: Complete processing, no new work accepted
     CHEETAH -> PSS: Logs(PULSAR_SEARCH 2 completed)
-    CHEETAH -> CHEETAH: Drained
-    CHEETAH -> PSS: Cheetah quiescent
+    CHEETAH -> CHEETAH: Drained. Exit
 else PULSAR_SEARCH already complete
-    CHEETAH -> CHEETAH: Drained
-    CHEETAH -> PSS: Cheetah quiescent
+    CHEETAH -> CHEETAH: Drained. Exit
 end
 
-PSS -> K8S: terminate/recycle cheetah
 deactivate CHEETAH
 K8S -> K8S: cheetah container restarts
 activate CHEETAH
