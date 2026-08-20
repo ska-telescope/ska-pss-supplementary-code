@@ -19,7 +19,7 @@ K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
 activate CHEETAH
 CHEETAH -> CHEETAH: Validate
 CHEETAH -> PSS: Logs(Config accepted)
-hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 
 ==AssignResources==
 
@@ -76,7 +76,7 @@ alt start_time + duration arrives before EndScan()
     end note
 else EndScan() arrives first
     note over PSS,CBF
-    Continute until EndScan()
+    Continue until EndScan()
     end note
 end
 
@@ -143,7 +143,7 @@ alt start_time + duration arrives before EndScan()
     end note
 else EndScan() arrives first
     note over PSS,CBF
-    Continute until EndScan()
+    Continue until EndScan()
     end note
 end
 
