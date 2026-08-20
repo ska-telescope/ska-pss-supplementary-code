@@ -183,8 +183,8 @@ CSP -> CBF: ReleaseResources()
 CSP -> PSS: ReleaseResources()
 hnote over PSS #SkyBlue : **State: [EMPTY]**
 PSS -> CHEETAH: Drain outstanding work
-CHEETAH -> CHEETAH: Drained. Exit
 hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
+CHEETAH -> CHEETAH: Drained. Exit
 
 deactivate CHEETAH
 K8S -> K8S: cheetah container restarts
