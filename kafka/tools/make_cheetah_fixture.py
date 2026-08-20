@@ -23,7 +23,7 @@ def parse_spccl_row(path: str, row: int = 0) -> dict:
     """Read one candidate row from a Cheetah .spccl file.
 
     Returns a dict with keys mjd, dm, width, snr. width stays in
-    milliseconds (pass-through). The leading 'label' column is dropped.
+    milliseconds (pass-through). The trailing 'label' column is dropped.
     """
     with open(path, "r", encoding="utf-8") as f:
         lines = [ln.rstrip("\n") for ln in f if ln.strip()]
