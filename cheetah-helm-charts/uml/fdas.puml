@@ -79,7 +79,7 @@ alt start_time + duration arrives before EndScan()
     end note
 else EndScan() arrives first
     note over PSS,CBF
-    Continute until EndScan()
+    Continue until EndScan()
     end note
 end
 
@@ -154,7 +154,7 @@ alt start_time + duration arrives before EndScan()
     end note
 else EndScan() arrives first
     note over PSS,CBF
-    Continute until EndScan()
+    Continue until EndScan()
     end note
 end
 
@@ -177,6 +177,8 @@ else TRANSIENT_SEARCH 2 already complete
     No action
     end note
 end
+
+hnote over CHEETAH #LimeGreen : **State: [PROCESSING]**
 
 ==End==
 
@@ -201,8 +203,10 @@ PSS -> CHEETAH: Drain outstanding work
 alt PUlSAR_SEARCH still processing
     CHEETAH -> CHEETAH: Complete processing, no new work accepted
     CHEETAH -> PSS: Logs(PULSAR_SEARCH 2 completed)
+    hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
     CHEETAH -> CHEETAH: Drained. Exit
 else PULSAR_SEARCH already complete
+    hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
     CHEETAH -> CHEETAH: Drained. Exit
 end
 
