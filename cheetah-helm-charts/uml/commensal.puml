@@ -29,7 +29,7 @@ TMC -> CSP: AssignResources(Dest addrs)
 CSP -> PSS: AssignResources(Dest addrs)
 PSS -> CSP: PSS addrs
 hnote over PSS #SkyBlue : **State: [IDLE]**
-hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 CSP -> CBF: AssignResources(PSS Addrs)
 
 ==Configure 1==
@@ -41,7 +41,7 @@ PSS -> PSS: Compute diff w.r.t bootstrap
 PSS -> CHEETAH: gRPC(diff)
 CHEETAH -> PSS: Logs(Config accepted)
 hnote over PSS #SkyBlue : **State: [READY]**
-hnote over CHEETAH #LimeGreen : **State: [CONFIGURED]**
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 TMC -> SDP: Configure()
 TMC -> CBF: Delay polys
 CBF -> CHEETAH: Data(id=0, valid=false)
@@ -60,7 +60,7 @@ PSS -> CHEETAH: gRPC(id=1)
 CBF -> CHEETAH: Data(id=1, valid=true)
 CHEETAH -> PSS: Logs(Receiving data, (valid, id=1))
 hnote over PSS #SkyBlue : **State: [SCANNING]**
-hnote over CHEETAH #LimeGreen : **State: [SCANNING]**
+hnote over CHEETAH #LimeGreen : **State: [PROCESSING]**
 CHEETAH -> CHEETAH: TRANSIENT_SEARCH
 CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 1 in progress)
 CHEETAH -> SDP: Candidates (TRANSIENT_SEARCH 1)
@@ -70,7 +70,7 @@ alt start_time + duration arrives before EndScan()
     CHEETAH -> CHEETAH: Stop TRANSIENT_SEARCH 1
     CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 1 completed)
     hnote over PSS #SkyBlue : **State: [READY]**
-    hnote over CHEETAH #LimeGreen : **State: [CONFIGURED]**
+    hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
     note right of CHEETAH
     Scan duration has expired
     end note
@@ -98,7 +98,7 @@ else TRANSIENT_SEARCH 1 already complete
 end
 
 hnote over PSS #SkyBlue : **State: [READY]**
-hnote over CHEETAH #LimeGreen : **State: [CONFIGURED]**
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 
 ==Configure 2==
 
@@ -109,7 +109,7 @@ PSS -> PSS: Compute diff w.r.t bootstrap
 PSS -> CHEETAH: gRPC(diff)
 CHEETAH -> PSS: Logs(Config accepted)
 hnote over PSS #SkyBlue : **State: [READY]**
-hnote over CHEETAH #LimeGreen : **State: [CONFIGURED]**
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 TMC -> SDP: Configure()
 TMC -> CBF: Delay polys
 CBF -> CHEETAH: Data(id=0, valid=false)
@@ -127,7 +127,7 @@ PSS -> CHEETAH: gRPC(id=2)
 CBF -> CHEETAH: Data(id=2, valid=true)
 CHEETAH -> PSS: Logs(Receiving data, (valid, id=2))
 hnote over PSS #SkyBlue : **State: [SCANNING]**
-hnote over CHEETAH #LimeGreen : **State: [SCANNING]**
+hnote over CHEETAH #LimeGreen : **State: [PROCESSING]**
 CHEETAH -> CHEETAH: TRANSIENT_SEARCH
 CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 2 in progress)
 CHEETAH -> SDP: Candidates (TRANSIENT_SEARCH 2)
@@ -137,7 +137,7 @@ alt start_time + duration arrives before EndScan()
     CHEETAH -> CHEETAH: Stop TRANSIENT_SEARCH 2
     CHEETAH -> PSS: Logs(TRANSIENT_SEARCH 2 completed)
     hnote over PSS #SkyBlue : **State: [READY]**
-    hnote over CHEETAH #LimeGreen : **State: [CONFIGURED]**
+    hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
     note right of CHEETAH
     Scan duration has expired
     end note
@@ -163,6 +163,7 @@ else TRANSIENT_SEARCH 2 already complete
     No action
     end note
 end
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 
 ==End==
 
@@ -183,11 +184,12 @@ CSP -> PSS: ReleaseResources()
 hnote over PSS #SkyBlue : **State: [EMPTY]**
 PSS -> CHEETAH: Drain outstanding work
 CHEETAH -> CHEETAH: Drained. Exit
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 
 deactivate CHEETAH
 K8S -> K8S: cheetah container restarts
 activate CHEETAH
 K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
-hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 
 @endum

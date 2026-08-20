@@ -25,7 +25,7 @@ alt Abort requested from an active obsState
     activate CHEETAH
     K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
     hnote over PSS #SkyBlue : **State: [ABORTED]**
-    hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+    hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 
 else Cheetah/PSS enters FAULT
     note over PSS,CHEETAH
@@ -51,7 +51,7 @@ Redundant restart if following Abort()
 end note
 K8S -> CHEETAH: cheetah_pipeline --config bootstrap.xml <args>
 hnote over PSS #SkyBlue : **State: [EMPTY]**
-hnote over CHEETAH #LimeGreen : **State: [BOOTSTRAPPED]**
+hnote over CHEETAH #LimeGreen : **State: [RUNNING]**
 
 
 
