@@ -15,11 +15,16 @@ Currently covered modules:
     spdt
     spsclustering (FoF, HDBSCan)
     spsift (only total)
-    psbc
-    fdas_laby
+    psbc  [incomplete ]
+    fdas_laby 
     strongSift
     simpleSift
     fldo    
+    BRDZ
+    TRED
+    DRED (cuda, presto)
+    CXFT (plan, processing, transfer)
+
 
 Two csv files are produced
 
@@ -199,6 +204,24 @@ config = {
                                           out_col="calc_start")
             ]
     },
+    "klotski_brute_ddtr_NoST": {
+        "pattern": r'(?i)^Klotski_brute Total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                regex=r'ddtr duration:\s+(\d+)',
+                #needed as it would otherwise overwrite  total duration above
+                out_col="ddtr_ns",
+                dtype=float
+            ),
+            # compute a calc_start using ddtr_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s",
+                                          dur_ns_col="ddtr_ns",
+                                          out_col="calc_start")
+            ]
+    },
     "klotski_corner_NoST": {
         "pattern": r'(?i)^Klotski Total duration',
         "processors": [
@@ -210,7 +233,7 @@ config = {
                 out_col="corner_ns",
                 dtype=float
             ),
-            # compute a calc_start using ddtr_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
+            # compute a calc_start using corner_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
             lambda df: compute_calc_start(df, 
                                           time_col="time_in_s",
                                           dur_ns_col="corner_ns",
@@ -228,14 +251,31 @@ config = {
                 out_col="spdt_ns",
                 dtype=float
             ),
-            # compute a calc_start using ddtr_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
+            # compute a calc_start using spdt_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
             lambda df: compute_calc_start(df, 
                                           time_col="time_in_s",
                                           dur_ns_col="spdt_ns",
                                           out_col="calc_start")
             ]
     },
-    
+    "klotski_brute_spdt_NoST": {
+        "pattern": r'(?i)^Klotski_brute Total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                regex=r'spdt duration:\s+(\d+)',
+                #needed as it would otherwise overwrite  total duration above
+                out_col="spdt_ns",
+                dtype=float
+            ),
+            # compute a calc_start using spdt_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s",
+                                          dur_ns_col="spdt_ns",
+                                          out_col="calc_start")
+            ]
+    },
     "spsift": {
         "pattern": r'(?i)^SPSIFT_end',
         "processors": [
@@ -383,6 +423,40 @@ config = {
                                           out_col="calc_start")
         ]
     },
+    "FDAS_fpga_init": {
+        "pattern": r'(?i)^FFT_forfpga_init_end total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                # capture group for the duration number
+                regex=r'FFT_forfpga_init_end total duration\s+\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
+    },
+    "FDAS_fpga": {
+        "pattern": r'(?i)^FDAS_fpga_end',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                # capture group for the duration number
+                regex=r'FDAS_fpga_end total duration\s+\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
+    },
     "strongSIFT": {
         "pattern": r'(?i)^strongSIFT duration',
         "processors": [
@@ -416,7 +490,164 @@ config = {
                                           dur_ns_col="dur_ns", 
                                           out_col="calc_start")
         ]
+    },
+    "BRDZ": {
+        "pattern": r'(?i)^Brdz CPU: total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                # capture group for the duration number
+                regex=r'Brdz CPU: total duration\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
     },    
+    "BRDZ_cuda": {
+        "pattern": r'(?i)^Brdz CUDA: total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                # capture group for the duration number
+                regex=r'Brdz CUDA: total duration\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
+    },    
+    "DRED_cuda": {
+        "pattern": r'(?i)^Dred CUDA: total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                # capture group for the duration number
+                regex=r'Dred CUDA: total duration\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
+    },    
+    "DRED_presto": {
+        "pattern": r'(?i)^Dred presto: total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                # capture group for the duration number
+                regex=r'Dred presto: total duration\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
+    },    
+    "TRED_savgol": {
+        "pattern": r'(?i)^Tdred savgol: total duration',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                # capture group for the duration number
+                regex=r'Tdred savgol: total duration\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
+    },
+    "CXFT": {
+        "pattern": r'(?i)^Cxft Total process',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                regex=r'Cxft Total process and transfer duration\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s", 
+                                          dur_ns_col="dur_ns", 
+                                          out_col="calc_start")
+        ]
+    },
+    "CXFT_setup": {
+        "pattern": r'(?i)^Cxft FFTW plan setup time',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                regex=r'Cxft FFTW plan setup time\s+\(ns\):\s+(\d+)',
+                out_col="dur_ns",
+                dtype=float
+            ),
+             lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s",
+                                          dur_ns_col="dur_ns",
+                                          out_col="calc_start")
+            ]
+    },
+    # NoST = No Starting Time means that the calculated starting time 
+    #        is NOT the actual starting time, just a stand-in
+    # these entries should only be used to plot the histograms, not the benchmon+process plot
+    # out col has to be different than the rest, but should have "_ns" at the end
+    "CXFT_process_NoST": {
+        "pattern": r'(?i)^Cxft processing time',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                regex=r'Cxft processing time\s+\(ns\):\s+(\d+)',
+                #needed as it would otherwise overwrite  total duration above
+                out_col="cxft_process_ns",
+                dtype=float
+            ),
+            # compute a calc_start using cxft_process_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s",
+                                          dur_ns_col="cxft_process_ns",
+                                          out_col="calc_start")
+            ]
+    },
+    "CXFT_transfer_NoST": {
+        "pattern": r'(?i)^Cxft processing time',
+        "processors": [
+            lambda df: extract_to_numeric(
+                df,
+                source_col="message",
+                regex=r'output transfer\s+\(ns\):\s+(\d+)',
+                #needed as it would otherwise overwrite  total duration above
+                out_col="cxft_transfer_ns",
+                dtype=float
+            ),
+            # compute a calc_start using cxft_transfer_ns (so the subframe has calc_start) == but it is NOT the correct DDTR start time
+            lambda df: compute_calc_start(df, 
+                                          time_col="time_in_s",
+                                          dur_ns_col="cxft_transfer_ns",
+                                          out_col="calc_start")
+            ]
+    },
     "fldo": {
         "pattern": r'(?i)^FLDO_ended',
         "processors": [
