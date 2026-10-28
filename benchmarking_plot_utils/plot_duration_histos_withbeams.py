@@ -293,14 +293,14 @@ for beam in present_beams:
             if value > 0.01:
                 ax1.text(
                     0.5, 0.5,
-                    f"Only one value\n for {name}\n(beam unknown):\n{value:.2f} s",
+                    f"Only one value\n for {name}\n(beam {beam}):\n{value:.2f} s",
                     fontsize=14, ha="center", va="center", transform=ax1.transAxes
                     )
             if value < 0.01:
                 value2 = value * 1e9
                 ax1.text(
                     0.5, 0.5,
-                    f"Only one value\n for {name}\n(beam unknown):\n{(value2):.2f} ns",
+                    f"Only one value\n for {name}\n(beam {beam}):\n{(value2):.2f} ns",
                     fontsize=14, ha="center", va="center", transform=ax1.transAxes
                     )
             ax1.set_axis_off()
