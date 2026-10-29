@@ -1,0 +1,61 @@
+(A) Cheetah should have been run with: " ... --log-level bench >  bench_log.txt "
+
+==============================================================================================================
+
+(B) This cheetah log file can be "digested" into three output csv files:
+
+(1) name+ _durations.csv   - for plotting histograms of durations, 
+                                including entries for which the calculated starting time is NOT correct (marked with _NoST in their name)
+(2) name+ _forBM.csv       - for plotting with benchmon, only includes entries for which the calculated starting time is correct
+(3) name+ _pars.csv        - contains the extracted run parameters
+
+The call is: 
+python3 .../ska-pss-supplementary-code/benchmarking_plot_utils/digest_cheetahlog_fBM_withbeams.py --indir 'directory_where_logfile_is/' --infile 'bench_log.txt' --outfile_root 'bench_log_extract'
+
+It produces: 
+bench_log_extract_forBM.csv
+bench_log_extract_durations.csv
+bench_log_extract_pars.csv
+in: 
+directory_where_logfile_is/
+
+==============================================================================================================
+
+(C) providing the file to benchmon to produce an annotated plot
+
+This assumes that benchmon has be run with 
+benchmon-run --system --pow --save-dir /directory_of_specific_benchmonrun
+
+Then one can run in the benchmon environment:
+
+benchmonvisu_params="--verbose --fig-fmt png --fig-name bm_plot_file_name"
+benchmonvisu_params+=" --cpu --cpu-all --cpu-freq"                  # Dispplay CPU usage, all cores and frequencies
+benchmonvisu_params+=" --mem"                                       # Display memory and swap usage
+benchmonvisu_params+=" --disk --disk-data --disk-iops"              # Display disk activity and IOPS
+benchmonvisu_params+=" --pow"
+benchmonvisu_params+=" --annotate-with-log directory_where_logfile_is/bench_log_extract_durations.csv"
+
+benchmon-visu $benchmonvisu_params /directory_of_specific_benchmonrun
+
+will produce: 
+/directory_of_specific_benchmonrun/bm_plot_file_name.png
+
+==============================================================================================================
+
+(D) Produce histograms of cheetah processing times
+- with mandatory parameters:
+
+python3 ...ska-pss-supplementary-code/benchmarking_plot_utils/plot_duration_histos_withbeams.py --indir directory_where_logfile_is/ --infile_root bench_log_extract --outfilestamm outfilename 
+
+optional parameters:
+--pipeline SPS   - = default; could also be FDAS; used in figure title
+--samplingtime 69.12 - = default, is used for calculating the real time coverage of an aggregation buffer
+--bindiv 5 - default=3, manual binning parameter, the more, the more histogram bars 
+--titlestring1 "tikbalang, 1b LOW stream 190MHz" - for figure title (gernal at start)
+--dmtitlestring "4 x 1999+3999+7999 DMs"     - for figure title (DM plan notes)
+--titlestringend "no affinities, without RFIM" - for figure title (extra notes)
+
+
+
+
+
