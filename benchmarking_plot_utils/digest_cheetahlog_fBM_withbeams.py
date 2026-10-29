@@ -26,12 +26,14 @@ Currently covered modules:
     CXFT (plan, processing, transfer)
 
 
-Two csv files are produced
+Three csv files are produced
 
-(1) outroot+ _durations.csv 
-(2) outroot+ _forBM.csv
+(1) outroot+ _durations.csv   - for plotting histograms of durations, 
+                                including entries for which the calculated starting time is NOT correct (marked with _NoST in their name)
+(2) outroot+ _forBM.csv       - for plotting with benchmon, only includes entries for which the calculated starting time is correct
+(3) outroot+ _pars.csv        - contains the extracted run parameters
 
-Both have columns:
+(1) and (2)  have columns:
 __orig_index", "calc_start",  "dur_ns", "name"
 
 (1) includes outputs from multiple duration outputs (e.g., corner turn, spdt) 
@@ -44,7 +46,10 @@ They can be still used, for instance, to plot benchmarked process durations in h
 
 Note 1 : The current calc_start accuracy is 1s (because of timestamp in cheetah logfile)
          Durations have ns accuracy
-Note 2 : multiple beams can currently not be differentiate in the log level
+
+(3) contains the extracted run parameters
+
+
 
 @author: bposselt
 """

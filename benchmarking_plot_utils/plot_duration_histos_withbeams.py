@@ -3,7 +3,7 @@
 """
 Plot histograms for ...durations.csv file (produced by dighest_cheetahlog_fBM.py)
 need coulmns "calc_start",  "dur_ns", "name"
-Plots are put in .png files and annranged in one combined .pdf
+Plots are put in .png files and arranged in combined .pdfs (per beam, and one for beam comparison)
 
 If there is only one process (e.g, one FDAS SIFT), produce a "plot" 
 which states the one number
@@ -44,7 +44,7 @@ def parse_args():
     parser.add_argument("--outfilestamm", required=True,
                         help="Root name for output files")
 
-    # Optional values: None lets us detect whether each option was supplied.
+    # Optional values:  detect whether each option was supplied.
     parser.add_argument("--pipeline", type=str, default=None)
     parser.add_argument("--samplingtime", type=float, default=None)
     parser.add_argument("--bindiv", type=int, default=None)
@@ -239,7 +239,7 @@ df=pd.read_csv(indir+infile)
 
 # Ensure beam column exists and has nullable integer dtype
 if "beam" not in df.columns:
-    # If no beam column present, create it as all missing
+    # If no beam column present, create it as missing entry
     df["beam"] = pd.NA
     
 df["beam"] = df["beam"].apply(_clean_beam).astype("Int64")
@@ -288,20 +288,20 @@ for beam in present_beams:
             ax1.grid(True, linestyle="--", alpha=0.6)
 
         else:
-            # single value
+            # single value; also decide on unit use (s or ns) for display
             value = subset["dur_ns"].iloc[0] / 1e9
-            if value > 0.01:
+            if value > 0.001:
                 ax1.text(
                     0.5, 0.5,
                     f"Only one value\n for {name}\n(beam {beam}):\n{value:.2f} s",
-                    fontsize=14, ha="center", va="center", transform=ax1.transAxes
+                    fontsize=18, ha="center", va="center", transform=ax1.transAxes
                     )
-            if value < 0.01:
+            if value < 0.001:
                 value2 = value * 1e9
                 ax1.text(
                     0.5, 0.5,
                     f"Only one value\n for {name}\n(beam {beam}):\n{(value2):.2f} ns",
-                    fontsize=14, ha="center", va="center", transform=ax1.transAxes
+                    fontsize=18, ha="center", va="center", transform=ax1.transAxes
                     )
             ax1.set_axis_off()
             ax1.set_title(f"Single value for {name} (beam {beam})")
@@ -313,7 +313,7 @@ for beam in present_beams:
         plt.close(fig)
         saved_paths.append(path)
 
-    # do extra processing time/ real time for kltoski
+    # do extra processing time/ real time for klotski plot 
     for name in beam_subset["name"].unique():
         subset = beam_subset[beam_subset["name"] == name]
         sizesubset = len(subset)
@@ -396,7 +396,7 @@ if has_unknown:
         plt.close(fig)
         saved_paths.append(path)
 
-    # do extra processing time/ real time for kltoski
+    # do extra processing time/ real time for klotski
     for name in beam_subset["name"].unique():
         subset = beam_subset[beam_subset["name"] == name]
         sizesubset = len(subset)
@@ -500,13 +500,18 @@ for name in df_f["name"].unique():
         nvals = len(vals)
 
         if nvals == 0:
-            ax.text(0.5, 0.5, f"No data for beam {beam}", ha="center", va="center", transform=ax.transAxes, fontsize=12)
+            ax.text(0.5, 0.5, f"No data for beam {beam}", ha="center", va="center", transform=ax.transAxes, fontsize=18)
             ax.set_xticks([])
             ax.set_yticks([])
         elif nvals == 1:
             v_s = vals[0] / 1e9
-            ax.text(0.5, 0.5, f"Only one value\n{v_s:.3f} s", ha="center", va="center", transform=ax.transAxes, fontsize=12)
+            if v_s > 0.001 :
+                ax.text(0.5, 0.5, f"Only one value\n{v_s:.3f} s", ha="center", va="center", transform=ax.transAxes, fontsize=18)
+            if v_s < 0.001 :
+                v_s2 = v_s * 1e9
+                ax.text(0.5, 0.5, f"Only one value\n{v_s2:.0f} ns", ha="center", va="center", transform=ax.transAxes, fontsize=18)
             ax.set_xticks([])
+            ax.set_yticks([])
         else:
             binsize = max(1, int(nvals / bindiv))
             ax.hist(vals, bins=binsize, edgecolor="black")
@@ -514,12 +519,12 @@ for name in df_f["name"].unique():
             ax.grid(True, linestyle="--", alpha=0.4)
             ax.set_title(f"beam {beam} (n={nvals})")
 
-        # enforce the common x-limits if available
-        if use_xlim is not None:
-            ax.set_xlim(use_xlim)
+            # enforce the common x-limits if available
+            if use_xlim is not None:
+                ax.set_xlim(use_xlim)
 
-    # Label y-axis of middle plot or leave as default
-    axes[0].set_ylabel("Counts")
+            # Label y-axis of middle plot or leave as default
+            axes[0].set_ylabel("Counts")
 
     fig.tight_layout(rect=[0, 0.03, 1, 0.95])
 
